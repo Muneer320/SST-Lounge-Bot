@@ -108,21 +108,46 @@ The bot requires the following permissions:
 - Send Messages
 - Embed Links
 - Read Message History
-- Use Slash Commands
 - Manage Messages (for cleanup features)
 
 ## Commands
 
 ### Contest Commands
 
-- `/setup_contests <channel>` - Set up contest announcements for a channel
-- `/next_contests` - Show upcoming contests
-- `/contest_settings` - Configure contest notification preferences
+- `/contests [days]` - Show upcoming contests (default: 3 days, IST timezone)
+- `/contest_setup [channel]` - Set contest announcement channel (Admin only)
+
+### Utility Commands
+
+- `/ping` - Check bot response time
+- `/hello` - Get a friendly greeting
+- `/help` - Show all available commands
 
 ### Admin Commands
 
-- `/admin help` - Show admin commands
-- `/set_contest_channel <channel>` - Set the contest announcement channel
+- `/info` - Show bot information and statistics
+- `/sync` - Sync slash commands (Admin only)
+
+## Administrator Privileges
+
+To use admin-only commands (`/sync`, `/contest_setup`), you need to have the **Administrator** permission in your Discord server.
+
+### How to Get Admin Privileges:
+
+1. **Server Owner**: The server owner automatically has all permissions
+2. **Role-based**: Server owners/admins can assign you a role with Administrator permission:
+   - Server Settings → Roles → Create/Edit Role → Enable "Administrator"
+   - Or assign you to an existing admin role
+3. **Permission-based**: Alternatively, specific permissions can be granted for individual commands
+
+### Admin Commands:
+
+- `/sync` - Sync slash commands with Discord
+- `/contest_setup` - Configure contest announcement channel
+
+### Public Commands:
+
+All other commands (like `/info`, `/contests`, `/ping`, `/hello`, `/help`) are available to everyone.
 
 ## API Integration
 

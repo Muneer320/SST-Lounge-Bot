@@ -18,6 +18,15 @@ class AdminCommands(commands.Cog):
     @app_commands.command(name='info', description='Show bot information and statistics')
     async def info(self, interaction: discord.Interaction):
         """Show bot information and statistics."""
+        # Check if user has admin permissions
+        if not interaction.guild:
+            await interaction.response.send_message("❌ This command can only be used in servers.", ephemeral=True)
+            return
+
+        member = interaction.guild.get_member(interaction.user.id)
+        if not member or not member.guild_permissions.administrator:
+            await interaction.response.send_message("❌ Administrator permission required.", ephemeral=True)
+            return
 
         embed = discord.Embed(
             title="🤖 SST Lounge Bot Info",

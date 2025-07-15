@@ -32,7 +32,7 @@ class ContestAPI:
         if self.session and not self.session.closed:
             await self.session.close()
 
-    async def fetch_upcoming_contests(self, days: int = 7) -> List[Dict]:
+    async def fetch_upcoming_contests(self, days: int = 3) -> List[Dict]:
         """Fetch upcoming contests from API."""
         try:
             session = await self.get_session()
@@ -138,8 +138,8 @@ class ContestCommands(commands.Cog):
         await self.api.close()
 
     @app_commands.command(name="contests", description="Show upcoming programming contests (IST timezone)")
-    @app_commands.describe(days='Number of days to look ahead (1-14, default: 7)')
-    async def contests(self, interaction: discord.Interaction, days: int = 7):
+    @app_commands.describe(days='Number of days to look ahead (1-14, default: 3)')
+    async def contests(self, interaction: discord.Interaction, days: int = 3):
         """Show upcoming contests."""
         if days < 1 or days > 14:
             await interaction.response.send_message("❌ Days must be between 1 and 14.", ephemeral=True)
@@ -196,7 +196,22 @@ class ContestCommands(commands.Cog):
 
         except Exception as e:
             logging.error(f"Contest command error: {e}")
-            await interaction.followup.send("❌ Failed to fetch contests. Please try again later.", ephemeral=True)
+            embed = discord.Embed(
+                title="❌ Contest Fetch Error",
+                description="Unable to fetch contest information at the moment.",
+                color=0xe74c3c
+            )
+            embed.add_field(
+                name="Possible Issues",
+                value="• API service temporarily unavailable\n• Network connectivity issues\n• Rate limiting",
+                inline=False
+            )
+            embed.add_field(
+                name="What to do",
+                value="Please try again in a few minutes. If the issue persists, contact an administrator.",
+                inline=False
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="contest_setup", description="Set contest announcement channel")
     @app_commands.describe(channel='Channel for contest announcements (default: current channel)')

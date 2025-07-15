@@ -76,34 +76,6 @@ class UtilityCommands(commands.Cog):
         embed.set_footer(text="SST Lounge Bot • All contest times in IST")
         await interaction.response.send_message(embed=embed)
 
-    @app_commands.command(name="invite", description="Get the bot invite link")
-    async def invite(self, interaction: discord.Interaction):
-        """Get bot invite link."""
-        permissions = discord.Permissions(
-            send_messages=True,
-            embed_links=True,
-            read_message_history=True,
-            manage_messages=True
-        )
-
-        invite_url = discord.utils.oauth_url(
-            self.bot.user.id,
-            permissions=permissions,
-            scopes=['bot', 'applications.commands']
-        )
-
-        embed = discord.Embed(
-            title="🔗 Invite SST Lounge Bot",
-            description=f"[Click here to invite me to another server]({invite_url})",
-            color=0x3498db
-        )
-        embed.add_field(
-            name="Required Permissions",
-            value="• Send Messages\n• Embed Links\n• Read Message History\n• Manage Messages",
-            inline=False
-        )
-        await interaction.response.send_message(embed=embed)
-
 
 async def setup(bot):
     """Load the utility commands."""
