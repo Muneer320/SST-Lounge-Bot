@@ -154,7 +154,11 @@ class AdminCommands(commands.Cog):
             bot_permissions = interaction.guild.me.guild_permissions
             if not bot_permissions.manage_roles:
                 await interaction.response.send_message(
-                    "❌ I don't have 'Manage Roles' permission. Please contact the server owner to grant me this permission.",
+                    "❌ I couldn't do that. This could be due to:\n"
+                    "• Bot's role is lower than the target role in the server hierarchy\n"
+                    "• Bot wasn't invited with Administrator permission\n"
+                    "• Server has unusual permission restrictions\n\n"
+                    "Please ensure the bot has Administrator permission and its role is positioned high enough.",
                     ephemeral=True
                 )
                 return

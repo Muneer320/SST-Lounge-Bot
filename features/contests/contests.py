@@ -4,6 +4,7 @@ Complete contest functionality for SST Lounge Discord Server.
 Handles contest fetching, announcements, and user commands.
 """
 
+import os
 import logging
 import aiohttp
 import pytz
@@ -22,13 +23,25 @@ class ContestAPI:
 
     def __init__(self):
         self.base_url = "https://clist.by/api/v4/contest/"
+        self.username = os.getenv('CLIST_API_USERNAME')
+        self.api_key = os.getenv('CLIST_API_KEY')
         self.platforms = ['codeforces.com',
                           'codechef.com', 'atcoder.jp', 'leetcode.com']
         self.session: Optional[aiohttp.ClientSession] = None
 
     async def get_session(self):
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
+            # Create session with authentication headers if credentials are available
+            headers = {}
+            if self.username and self.api_key:
+                headers['Authorization'] = f'ApiKey {self.username}:{self.api_key}'
+                logging.info(
+                    f"Using clist.by API credentials for user: {self.username}")
+            else:
+                logging.warning(
+                    "No clist.by API credentials found - using unauthenticated requests (limited)")
+
+            self.session = aiohttp.ClientSession(headers=headers)
         return self.session
 
     async def close(self):
@@ -182,7 +195,7 @@ class ContestCommands(commands.Cog):
 
             # Group by platform
             platform_contests = {}
-            for contest in contests[:10]:  # Limit to 10
+            for contest in contests:
                 platform = contest['platform']
                 if platform not in platform_contests:
                     platform_contests[platform] = []
@@ -196,7 +209,7 @@ class ContestCommands(commands.Cog):
 
             for platform, contests_list in platform_contests.items():
                 contest_text = []
-                for contest in contests_list[:3]:  # Max 3 per platform
+                for contest in contests_list[:5]:  # Max 5 per platform
                     text = f"**{contest['name']}**\n"
                     text += f"🕒 {contest['start_time']}\n"
                     text += f"⏱️ {contest['duration']}"
