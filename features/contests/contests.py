@@ -53,14 +53,14 @@ class ContestAPI:
         try:
             session = await self.get_session()
 
-            # Time range in UTC for API
-            start_time = datetime.now(pytz.timezone(
-                'Asia/Kolkata')).replace(tzinfo=pytz.UTC)
+            # Time range for API - start from today's 00:00 UTC to get all today's contests
+            start_time = datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0)
             end_time = start_time + timedelta(days=days)
 
             params = {
-                'start__gte': start_time.isoformat(),
-                'start__lte': end_time.isoformat(),
+                'start__gte': start_time.strftime('%Y-%m-%dT%H:%M:%S'),
+                'start__lte': end_time.strftime('%Y-%m-%dT%H:%M:%S'),
                 'resource__in': ','.join(self.platforms),
                 'order_by': 'start',
                 'format': 'json',
@@ -162,12 +162,107 @@ class ContestAPI:
     def _get_emoji(self, platform: str) -> str:
         """Get emoji for platform."""
         emojis = {
-            'codeforces.com': '🔴',
+            'codeforces.com': '🔵',
             'codechef.com': '🟤',
             'atcoder.jp': '🟠',
             'leetcode.com': '🟡'
         }
         return emojis.get(platform, '⚪')
+
+    def _get_contest_status(self, start_time_str: str, duration_seconds: int) -> str:
+        """Determine contest status based on current time."""
+        try:
+            # Parse the formatted start time back to datetime
+            start_time_clean = start_time_str.replace(' IST', '')
+            start_dt = datetime.strptime(
+                start_time_clean, '%B %d, %Y at %I:%M %p')
+
+            # Convert to IST timezone for comparison
+            ist_tz = pytz.timezone('Asia/Kolkata')
+            start_dt = ist_tz.localize(start_dt)
+            end_dt = start_dt + timedelta(seconds=duration_seconds)
+
+            # Get current time in IST
+            now_ist = datetime.now(ist_tz)
+
+            if now_ist < start_dt:
+                return "upcoming"
+            elif now_ist > end_dt:
+                return "ended"
+            else:
+                return "running"
+        except Exception as e:
+            logging.warning(f"Error determining contest status: {e}")
+            return "unknown"
+
+    def _get_status_emoji(self, status: str) -> str:
+        """Get emoji for contest status."""
+        status_emojis = {
+            'upcoming': '⏰',
+            'running': '🔴',
+            'ended': '✅',
+            'unknown': '❓'
+        }
+        return status_emojis.get(status, '❓')
+
+    async def fetch_todays_contests(self) -> List[Dict]:
+        """Fetch contests from today's 00:00 hours to capture all of today's contests."""
+        try:
+            session = await self.get_session()
+
+            # Get today's start time at 00:00 UTC
+            today_start = datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0)
+            today_end = today_start + timedelta(days=1)
+
+            params = {
+                'start__gte': today_start.strftime('%Y-%m-%dT%H:%M:%S'),
+                'start__lte': today_end.strftime('%Y-%m-%dT%H:%M:%S'),
+                'resource__in': ','.join(self.platforms),
+                'order_by': 'start',
+                'format': 'json',
+                'limit': 1000
+            }
+
+            # Log the complete URL being used
+            url_with_params = f"{self.base_url}?" + \
+                "&".join([f"{k}={v}" for k, v in params.items()])
+            logging.info(f"Fetching today's contests from: {url_with_params}")
+
+            async with session.get(self.base_url, params=params) as response:
+                logging.info(f"API Response Status: {response.status}")
+
+                if response.status == 200:
+                    data = await response.json()
+                    contest_count = len(data.get('objects', []))
+                    logging.info(
+                        f"Successfully fetched {contest_count} today's contests")
+                    return self._process_contests(data.get('objects', []))
+                elif response.status == 401:
+                    logging.error(
+                        "API Error 401: Unauthorized - Invalid or missing API credentials")
+                    raise Exception("API_UNAUTHORIZED")
+                elif response.status == 429:
+                    logging.error("API Error 429: Rate limited")
+                    raise Exception("API_RATE_LIMITED")
+                else:
+                    error_text = await response.text()
+                    logging.error(f"API Error {response.status}: {error_text}")
+                    raise Exception(f"API_ERROR_{response.status}")
+
+        except Exception as e:
+            logging.error(f"Today's contest fetch error: {e}")
+            raise e
+
+    def _get_platform_name_from_key(self, platform_key: str) -> str:
+        """Get platform display name from platform key."""
+        key_to_name = {
+            'codeforces.com': 'Codeforces',
+            'codechef.com': 'CodeChef',
+            'atcoder.jp': 'AtCoder',
+            'leetcode.com': 'LeetCode'
+        }
+        return key_to_name.get(platform_key, platform_key)
 
 
 class ContestCommands(commands.Cog):
@@ -313,7 +408,7 @@ class ContestCommands(commands.Cog):
     def _get_emoji(self, platform: str) -> str:
         """Get emoji for platform."""
         emojis = {
-            'codeforces.com': '🔴',
+            'codeforces.com': '🔵',
             'codechef.com': '🟤',
             'atcoder.jp': '🟠',
             'leetcode.com': '🟡'
@@ -463,7 +558,7 @@ class ContestCommands(commands.Cog):
                     )
 
             embed.set_footer(
-                text="All times in IST • Data from clist.by cache")
+                text="All times in IST • Data from clist.by")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
@@ -499,7 +594,36 @@ class ContestCommands(commands.Cog):
         try:
             platform_key = self.platform_map.get(
                 platform.lower()) if platform else None
+
+            # First try to use cached data
             contests = await self.bot.db.get_contests_today(platform=platform_key, limit=limit)
+            data_source = "Data from clist.by"
+
+            # If no cached data or cache is stale, fetch fresh data
+            if not contests or await self.bot.db.is_cache_stale():
+                try:
+                    logging.info(
+                        "Cache is stale or empty, fetching fresh today's contests...")
+                    fresh_contests = await self.api.fetch_todays_contests()
+
+                    # Filter by platform if specified
+                    if platform_key:
+                        platform_name = self.api._get_platform_name_from_key(
+                            platform_key)
+                        fresh_contests = [
+                            c for c in fresh_contests if c['platform'] == platform_name]
+
+                    # Apply limit if specified
+                    if limit:
+                        fresh_contests = fresh_contests[:limit]
+
+                    contests = fresh_contests
+                    data_source = "Fresh API data"
+                except Exception as e:
+                    logging.warning(f"Failed to fetch fresh data: {e}")
+                    if not contests:  # Only show error if we have no fallback data
+                        await interaction.followup.send("❌ Failed to fetch contest data. Please try again later.", ephemeral=True)
+                        return
 
             embed = discord.Embed(
                 title="📅 Today's Programming Contests",
@@ -509,24 +633,50 @@ class ContestCommands(commands.Cog):
             if contests:
                 contest_list = []
                 for contest in contests:
-                    emoji = self._get_emoji(contest.get('platform_key', ''))
-                    entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
-                    if contest.get('url'):
-                        entry += f"\n    🔗 [Link]({contest['url']})"
-                    contest_list.append(entry)
+                    try:
+                        emoji = self._get_emoji(
+                            contest.get('platform_key', ''))
 
-                embed.description = f"Found {len(contests)} contest(s) starting today:"
+                        # Get contest status and status emoji (with fallback for missing duration_seconds)
+                        duration_seconds = contest.get('duration_seconds', 0)
+                        status = self.api._get_contest_status(
+                            contest['start_time'], duration_seconds)
+                        status_emoji = self.api._get_status_emoji(status)
+
+                        entry = f"{emoji} **{contest['name']}** ({contest['platform']}) {status_emoji}\n    🕒 {contest['start_time']} • Duration: {contest['duration']}"
+                        if contest.get('url'):
+                            entry += f"\n    🔗 [Link]({contest['url']})"
+                        contest_list.append(entry)
+                    except Exception as e:
+                        logging.warning(
+                            f"Error processing contest {contest.get('name', 'unknown')}: {e}")
+                        # Add contest without status if there's an error
+                        emoji = self._get_emoji(
+                            contest.get('platform_key', ''))
+                        entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
+                        if contest.get('url'):
+                            entry += f"\n    🔗 [Link]({contest['url']})"
+                        contest_list.append(entry)
+
+                embed.description = f"Found {len(contests)} contest(s) for today:"
                 embed.add_field(
                     name="🗓️ Today's Contests",
                     value="\n\n".join(contest_list),
                     inline=False
                 )
+
+                # Add legend for status emojis
+                embed.add_field(
+                    name="📊 Status Legend",
+                    value="⏰ Upcoming • 🔴 Running • ✅ Ended",
+                    inline=False
+                )
             else:
-                embed.description = "No contests starting today" + \
-                    (f" for {platform}" if platform else "") + "."
+                embed.description = "No contests for today" + \
+                    (f" on {platform}" if platform else "") + "."
                 embed.color = 0xe74c3c
 
-            embed.set_footer(text="All times in IST • Data from cache")
+            embed.set_footer(text=f"All times in IST • {data_source}")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
@@ -588,7 +738,7 @@ class ContestCommands(commands.Cog):
                     (f" for {platform}" if platform else "") + "."
                 embed.color = 0xe74c3c
 
-            embed.set_footer(text="All times in IST • Data from cache")
+            embed.set_footer(text="All times in IST • Data from clist.by")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
@@ -685,6 +835,52 @@ class ContestCommands(commands.Cog):
         )
 
         await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="refresh_contests", description="[Admin] Manually refresh contest cache")
+    async def refresh_contests(self, interaction: discord.Interaction):
+        """Admin command to manually refresh contest cache."""
+        # Check if user is admin
+        if not is_admin(interaction):
+            await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        try:
+            embed = discord.Embed(
+                title="🔄 Refreshing Contest Cache",
+                description="Fetching latest contest data...",
+                color=0xf39c12
+            )
+            await interaction.followup.send(embed=embed)
+
+            # Fetch and cache contests
+            cached_count = await self.bot.db.fetch_and_cache_contests(self.api, max_days=30)
+
+            # Success embed
+            success_embed = discord.Embed(
+                title="✅ Contest Cache Refreshed",
+                description=f"Successfully cached {cached_count} contests for the next 30 days",
+                color=0x27ae60
+            )
+            success_embed.add_field(
+                name="📊 Cache Status",
+                value=f"• **Contests Cached**: {cached_count}\n• **Coverage**: 30 days\n• **Last Updated**: Just now",
+                inline=False
+            )
+            success_embed.set_footer(text="Use /contests to see the latest data")
+
+            await interaction.edit_original_response(embed=success_embed)
+            logging.info(f"Manual contest cache refresh by {interaction.user} - cached {cached_count} contests")
+
+        except Exception as e:
+            logging.error(f"Manual contest refresh error: {e}")
+            error_embed = discord.Embed(
+                title="❌ Cache Refresh Failed",
+                description="Unable to refresh contest cache. Please try again later.",
+                color=0xe74c3c
+            )
+            await interaction.edit_original_response(embed=error_embed)
 
 
 async def setup(bot):

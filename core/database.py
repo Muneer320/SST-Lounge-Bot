@@ -220,6 +220,7 @@ class SimpleDB:
                 'start_time': formatted_start,
                 'end_time': row[4],
                 'duration': self._format_duration_from_seconds(row[5]),
+                'duration_seconds': row[5],  # Add raw duration in seconds
                 'url': row[6],
                 'created_at': row[7],
                 'updated_at': row[8],
