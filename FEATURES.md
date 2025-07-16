@@ -88,16 +88,6 @@ To add a new feature to the bot:
 - **Slash Commands Only**: Modern Discord interaction model
 - **Clean Code**: Simple, readable, and maintainable code structure
 
-## 🚀 Future Extension Ideas
-
-The modular structure makes it easy to add:
-
-- **Auto Role Management**: Assign roles based on coding metrics
-- **Rating Leaderboards**: Track and display competitive programming ratings
-- **Study Groups**: Organize and manage study sessions
-- **Assignment Reminders**: Academic deadline notifications
-- **Placement Prep**: Interview and placement preparation features
-
 ## 🔍 Troubleshooting
 
 - **Feature not loading?** Check the `core/bot.py` features list

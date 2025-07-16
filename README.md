@@ -1,6 +1,6 @@
 # SST Lounge Discord Bot
 
-A comprehensive Discord bot designed for **SST batch of '29** students in the SST Lounge server. Provides various functionalities to facilitate server management, student coordination, and more. All contest times are displayed in **Indian Standard Time (IST)**.
+A comprehensive Discord bot designed for **SST batch of '29** students in the **SST Lounge** server. Provides various functionalities to facilitate server management, student coordination, and more. 
 
 ## Features
 
@@ -17,13 +17,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the SS
 - **Role-based permissions** for different functionalities
 - **Slash commands** for easy interaction
 - **Modular architecture** for future expansions
-
-### 🚀 Future Features (Planned)
-
-- **Auto Role Management**: Based on user metrics and activity
-- **Rating Leaderboards**: Track users' competitive programming ratings
-- **Study Groups**: Organize and manage study sessions
-- **Event Management**: Handle batch events and activities
+  
 
 ## 🏗️ Modular Architecture
 
@@ -38,26 +32,15 @@ See `FEATURES.md` for detailed information about adding new features and the cur
 
 ## Project Structure
 
-```
-├── core/
-│   ├── __init__.py
-│   ├── bot.py               # Main bot class
-│   └── database.py          # Database operations
-├── features/                # Modular feature system
-│   ├── admin/
-│   │   └── admin.py         # Administrative commands
-│   ├── contests/
-│   │   └── contests.py      # Contest tracking and notifications
-│   └── utilities/
-│       └── utilities.py     # Basic utility commands
-├── bot/                     # Legacy components (if needed)
-├── tests/                   # Unit tests
+```text
+├── core/                    # Core bot setup & database
+├── features/                # Modular feature cogs
+├── tests/                   # Unit tests (pytest)
 ├── run.py                   # Bot entry point
 ├── requirements.txt         # Python dependencies
-├── FEATURES.md             # Detailed feature documentation
-├── .env.example            # Environment variables template
-├── .gitignore              # Git ignore rules
-└── README.md               # This file
+├── .env.example             # Environment variables template
+├── FEATURES.md              # Feature documentation
+└── README.md                # Project overview
 ```
 
 ## Quick Start
@@ -115,7 +98,6 @@ The bot requires the following permissions:
 ### Contest Commands
 
 - `/contests [days]` - Show upcoming contests (default: 3 days, IST timezone)
-- `/contest_setup [channel]` - Set contest announcement channel (Admin only)
 
 ### Utility Commands
 
@@ -125,7 +107,7 @@ The bot requires the following permissions:
 
 ### Admin Commands
 
-- `/info` - Show bot information and statistics
+- `/sync` - Sync slash commands with Discord
 - `/sync` - Sync slash commands (Admin only)
 
 ## Administrator Privileges

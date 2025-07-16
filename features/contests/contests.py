@@ -208,20 +208,22 @@ class ContestCommands(commands.Cog):
             )
 
             for platform, contests_list in platform_contests.items():
-                contest_text = []
-                for contest in contests_list[:5]:  # Max 5 per platform
-                    text = f"**{contest['name']}**\n"
-                    text += f"🕒 {contest['start_time']}\n"
-                    text += f"⏱️ {contest['duration']}"
-                    if contest['url']:
-                        text += f"\n🔗 [Link]({contest['url']})"
-                    contest_text.append(text)
+                formatted = []
+                # show up to 5 contests per platform
+                for contest in contests_list[:5]:
+                    entry = (
+                        f"• **{contest['name']}**\n"
+                        f"    🕒 {contest['start_time']}\n"
+                        f"    ⏱️ {contest['duration']}"
+                    )
+                    if contest.get('url'):
+                        entry += f"\n    🔗 [Link]({contest['url']})"
+                    formatted.append(entry)
 
-                if contest_text:
-                    field_value = '\n\n'.join(contest_text)
+                if formatted:
                     embed.add_field(
-                        name=f"{contests_list[0]['platform_emoji']} {platform}",
-                        value=field_value,
+                        name=f"**{contests_list[0]['platform_emoji']} {platform}**",
+                        value="\n\n".join(formatted),
                         inline=False
                     )
 
