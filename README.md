@@ -189,14 +189,6 @@ logs/             # Bot operation logs
 - **Background Tasks**: Non-blocking daily refresh and announcements
 - **Error Recovery**: Automatic retry mechanisms and fallback strategies
 
-## 🚀 Deployment
-
-For production deployment:
-
-1. Set up environment variables securely
-2. Configure logging levels appropriately
-3. Set up database backups
-4. Monitor API usage and bot performance
 
 ## 📝 License
 
