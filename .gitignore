@@ -67,6 +67,7 @@ ehthumbs.db
 Thumbs.db
 
 # Database
+database/
 *.db
 *.sqlite3
 

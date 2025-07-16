@@ -1,55 +1,55 @@
 # SST Lounge Discord Bot
 
-A comprehensive Discord bot designed for **SST batch of '29** students in the **SST Lounge** server. Provides various functionalities to facilitate server management, student coordination, and more. 
+A comprehensive Discord bot designed for **SST batch of '29** students in the **SST Lounge** server. Features an advanced contest tracking system with caching, automation, and platform filtering.
 
-## Features
+## ✨ Features
 
-### 🏆 Contest Tracking
+### 🏆 Advanced Contest System
 
-- **Contest Notifications**: Automatically fetches and announces upcoming contests from major CP platforms
-  - Codeforces, CodeChef, AtCoder, LeetCode
-- **Daily Contest Updates**: Scheduled daily announcements in designated channels
+- **Smart Caching**: Contests cached for 30 days, refreshed every 6 hours
+- **Platform Filtering**: Support for Codeforces, CodeChef, AtCoder, LeetCode
+- **Daily Commands**: `/contests_today` and `/contests_tomorrow`
+- **Automated Announcements**: Daily contest updates at configurable times
+- **Flexible Queries**: Filter by days (1-30), platform, and limit results
 - **IST Timezone**: All times displayed in Indian Standard Time
 
 ### 🔧 Server Management
 
-- **Channel configuration** for various features
-- **Role-based permissions** for different functionalities
-- **Slash commands** for easy interaction
-- **Modular architecture** for future expansions
-  
+- **Admin Role Management**: Grant/revoke admin privileges (Owner only)
+- **Channel Configuration**: Set contest announcement channels
+- **Slash Commands**: Modern Discord interaction model
+- **Permission System**: Robust admin privilege checking
 
-## 🏗️ Modular Architecture
+### 🏗️ Architecture
 
-The SST Lounge Bot features a **clean, modular architecture** designed for easy maintenance and extensibility:
+- **Modular Design**: Self-contained feature modules
+- **Database System**: SQLite with organized structure in `database/`
+- **Background Tasks**: Automated cache refresh and announcements
+- **Error Handling**: Graceful fallbacks and user-friendly messages
 
-- **📁 Features Directory**: Each feature is self-contained in its own module
-- **🔧 Easy Extension**: Add new features without touching existing code
-- **🧹 Clean Separation**: Admin, contest, and utility features are completely separate
-- **📖 Documentation**: Comprehensive feature documentation in `FEATURES.md`
-
-See `FEATURES.md` for detailed information about adding new features and the current feature architecture.
-
-## Project Structure
+## 📁 Project Structure
 
 ```text
-├── core/                    # Core bot setup & database
-├── features/                # Modular feature cogs
-├── tests/                   # Unit tests (pytest)
-├── run.py                   # Bot entry point
-├── requirements.txt         # Python dependencies
-├── .env.example             # Environment variables template
-├── FEATURES.md              # Feature documentation
-└── README.md                # Project overview
+├── core/                    # Bot core and database
+│   ├── bot.py              # Main bot class
+│   └── database.py         # SQLite database operations
+├── features/               # Modular features
+│   ├── admin/              # Admin commands and role management
+│   ├── contests/           # Contest system with caching
+│   └── utilities/          # Basic utility commands
+├── database/               # All database files
+├── logs/                   # Bot logs and debugging
+├── run.py                 # Bot entry point
+└── requirements.txt       # Dependencies
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python 3.8+
 - Discord Bot Token
-- clist.by API credentials (optional for enhanced features)
+- clist.by API credentials (required for contest features)
 
 ### Installation
 
@@ -66,7 +66,7 @@ See `FEATURES.md` for detailed information about adding new features and the cur
 
    ```bash
    copy .env.example .env
-   # Edit .env with your bot token and API keys
+   # Edit .env with your bot token and API credentials
    ```
 
 3. **Run the Bot**
@@ -74,45 +74,46 @@ See `FEATURES.md` for detailed information about adding new features and the cur
    python run.py
    ```
 
-## Configuration
-
-### Discord Bot Setup
-
-1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
-3. Go to "Bot" section and create a bot
-4. Copy the bot token to your `.env` file
-5. Enable necessary intents (Message Content Intent, Server Members Intent)
-
-### Bot Permissions
-
-The bot requires the following permissions:
-
-- Send Messages
-- Embed Links
-- Read Message History
-- Manage Messages (for cleanup features)
-
-## Commands
+## 🎮 Commands
 
 ### Contest Commands
 
-- `/contests [days]` - Show upcoming contests (default: 3 days, IST timezone)
+```bash
+/contests [days:1-30] [platform] [limit:1-20]     # Show upcoming contests
+/contests_today [platform] [limit:1-10]           # Today's contests
+/contests_tomorrow [platform] [limit:1-10]        # Tomorrow's contests
+```
 
-### Utility Commands
+**Platform Options**: `codeforces`, `codechef`, `atcoder`, `leetcode`
 
-- `/ping` - Check bot response time
-- `/hello` - Get a friendly greeting
-- `/help` - Show all available commands
+**Examples**:
+
+- `/contests days:7 platform:codeforces limit:5` - Next 7 days, Codeforces only, max 5
+- `/contests_today platform:leetcode` - Today's LeetCode contests
+- `/contests_tomorrow limit:3` - Tomorrow's top 3 contests
 
 ### Admin Commands
 
-- `/sync` - Sync slash commands with Discord
-- `/sync` - Sync slash commands (Admin only)
+```bash
+/contest_setup [channel]         # Set contest announcement channel
+/contest_time [time]            # Set daily announcement time (HH:MM IST)
+/grant_admin [user/role]        # Grant admin privileges (Owner only)
+/revoke_admin [user/role]       # Revoke admin privileges (Owner only)
+/info                           # Bot information (Owner Only)
+/sync                           # Sync slash commands
+```
+
+### Utility Commands
+
+```bash
+/ping                           # Check bot latency
+/hello                          # Friendly greeting
+/help                           # Show all commands
+```
 
 ## Administrator Privileges
 
-To use admin-only commands (`/sync`, `/contest_setup`), you need to have the **Administrator** permission in your Discord server.
+To use admin-only commands (`/info`, `/sync`, `/contest_setup`), you need to have the **Administrator** permission in your Discord server.
 
 ### How to Get Admin Privileges:
 
@@ -129,7 +130,7 @@ To use admin-only commands (`/sync`, `/contest_setup`), you need to have the **A
 
 ### Public Commands:
 
-All other commands (like `/info`, `/contests`, `/ping`, `/hello`, `/help`) are available to everyone.
+All other commands (like `/contests`, `/ping`, `/hello`, `/help`) are available to everyone.
 
 ## API Integration
 

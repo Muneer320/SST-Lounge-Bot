@@ -67,17 +67,10 @@ class SSTLoungeBot(commands.Bot):
         self.logger.info(f"Bot {self.user} is online!")
         self.logger.info(f"Serving {len(self.guilds)} guilds")
 
-        # Log guild information
-        for guild in self.guilds:
-            self.logger.info(
-                f"Connected to guild: {guild.name} (ID: {guild.id}, Members: {guild.member_count})")
-
         # Sync slash commands on startup
         try:
             synced = await self.tree.sync()
             self.logger.info(f"Synced {len(synced)} slash commands")
-            for cmd in synced:
-                self.logger.debug(f"Synced command: /{cmd.name}")
         except Exception as e:
             self.logger.error(f"Failed to sync commands: {e}")
 
@@ -87,7 +80,6 @@ class SSTLoungeBot(commands.Bot):
             name="SST Batch '29 | /help"
         )
         await self.change_presence(activity=activity)
-        self.logger.info("Bot activity set")
 
     async def on_guild_join(self, guild):
         """Called when bot joins a new guild."""

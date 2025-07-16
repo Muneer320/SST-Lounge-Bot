@@ -53,8 +53,11 @@ class UtilityCommands(commands.Cog):
 
         embed.add_field(
             name="🏆 Contest Commands",
-            value="• `/contests` - Show upcoming contests (IST)\n"
-                  "• `/contest_setup` - Set contest channel (Admin)",
+            value="• `/contests [days] [platform] [limit]` - Show upcoming contests\n"
+                  "• `/contests_today [platform] [limit]` - Show today's contests\n"
+                  "• `/contests_tomorrow [platform] [limit]` - Show tomorrow's contests\n"
+                  "• `/contest_setup [channel]` - Set contest channel (Admin)\n"
+                  "• `/contest_time [time]` - Set announcement time (Admin)",
             inline=False
         )
 
@@ -69,7 +72,9 @@ class UtilityCommands(commands.Cog):
         embed.add_field(
             name="⚙️ Admin Commands",
             value="• `/info` - Show bot information\n"
-                  "• `/sync` - Sync slash commands",
+                  "• `/sync` - Sync slash commands\n"
+                  "• `/grant_admin [user/role]` - Grant admin privileges (Owner only)\n"
+                  "• `/revoke_admin [user/role]` - Revoke admin privileges (Owner only)",
             inline=False
         )
 

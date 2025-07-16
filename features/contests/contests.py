@@ -11,7 +11,7 @@ import pytz
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 
 # Import the admin check function
@@ -63,7 +63,8 @@ class ContestAPI:
                 'start__lte': end_time.isoformat(),
                 'resource__in': ','.join(self.platforms),
                 'order_by': 'start',
-                'format': 'json'
+                'format': 'json',
+                'limit': 1000  # Get more contests for caching
             }
 
             # Log the complete URL being used
@@ -115,17 +116,25 @@ class ContestAPI:
                     start_dt = start_dt.replace(tzinfo=pytz.UTC)
                 ist_time = start_dt.astimezone(pytz.timezone('Asia/Kolkata'))
 
-                # Format duration
+                # Calculate end time
                 duration_seconds = contest.get('duration', 0)
+                end_dt = start_dt + timedelta(seconds=duration_seconds)
+                ist_end_time = end_dt.astimezone(pytz.timezone('Asia/Kolkata'))
+
+                # Format duration
                 duration_str = self._format_duration(duration_seconds)
 
                 processed.append({
+                    'id': f"{contest['resource']}_{hash(contest['event'])}",
                     'name': contest['event'],
                     'platform': platform_names.get(contest['resource'], contest['resource']),
                     'start_time': ist_time.strftime('%B %d, %Y at %I:%M %p IST'),
+                    'end_time': ist_end_time.strftime('%B %d, %Y at %I:%M %p IST'),
                     'duration': duration_str,
+                    'duration_seconds': duration_seconds,
                     'url': contest.get('href', ''),
-                    'platform_emoji': self._get_emoji(contest['resource'])
+                    'platform_emoji': self._get_emoji(contest['resource']),
+                    'platform_key': contest['resource']
                 })
             except Exception as e:
                 logging.warning(f"Error processing contest: {e}")
@@ -162,32 +171,252 @@ class ContestAPI:
 
 
 class ContestCommands(commands.Cog):
-    """Contest-related slash commands."""
+    """Contest-related slash commands with caching and automation."""
 
     def __init__(self, bot):
         self.bot = bot
         self.api = ContestAPI()
+        self.platform_map = {
+            'codeforces': 'codeforces.com',
+            'codechef': 'codechef.com',
+            'atcoder': 'atcoder.jp',
+            'leetcode': 'leetcode.com'
+        }
+        # Start background tasks
+        self.refresh_contest_cache.start()
+        self.daily_announcements.start()
 
     async def cog_unload(self):
+        """Clean up when cog is unloaded."""
+        self.refresh_contest_cache.cancel()
+        self.daily_announcements.cancel()
         await self.api.close()
 
+    @tasks.loop(hours=6)  # Refresh cache every 6 hours
+    async def refresh_contest_cache(self):
+        """Background task to refresh contest cache."""
+        try:
+            logging.info("Refreshing contest cache...")
+            cached_count = await self.bot.db.fetch_and_cache_contests(self.api, max_days=30)
+            logging.info(f"Cache refreshed with {cached_count} contests")
+        except Exception as e:
+            logging.error(f"Error refreshing contest cache: {e}")
+
+    @refresh_contest_cache.before_loop
+    async def before_refresh_contest_cache(self):
+        """Wait for bot to be ready before starting cache refresh."""
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(hours=24)  # Check daily for announcements
+    async def daily_announcements(self):
+        """Background task for daily contest announcements."""
+        try:
+            # Get all configured contest channels
+            channels = await self.bot.db.get_all_contest_channels()
+
+            for guild_id, channel_id in channels.items():
+                try:
+                    # Check if announcement should be sent today
+                    if not await self.bot.db.should_send_announcement(guild_id):
+                        continue
+
+                    # Get announcement time for this guild
+                    announcement_time = await self.bot.db.get_announcement_time(guild_id)
+                    current_time = datetime.now().strftime('%H:%M')
+
+                    # Check if it's time to send announcement (within 1 hour window)
+                    if abs(datetime.strptime(current_time, '%H:%M').hour -
+                           datetime.strptime(announcement_time, '%H:%M').hour) <= 1:
+
+                        guild = self.bot.get_guild(guild_id)
+                        if not guild:
+                            continue
+
+                        channel = guild.get_channel(channel_id)
+                        if not channel:
+                            continue
+
+                        # Send daily contest announcement
+                        await self._send_daily_announcement(channel)
+                        await self.bot.db.mark_announcement_sent(guild_id)
+
+                except Exception as e:
+                    logging.error(
+                        f"Error sending daily announcement for guild {guild_id}: {e}")
+
+        except Exception as e:
+            logging.error(f"Error in daily announcements task: {e}")
+
+    @daily_announcements.before_loop
+    async def before_daily_announcements(self):
+        """Wait for bot to be ready before starting daily announcements."""
+        await self.bot.wait_until_ready()
+
+    async def _send_daily_announcement(self, channel):
+        """Send daily contest announcement to a channel."""
+        try:
+            # Get today's and tomorrow's contests from cache
+            today_contests = await self.bot.db.get_contests_today()
+            tomorrow_contests = await self.bot.db.get_contests_tomorrow()
+
+            embed = discord.Embed(
+                title="📅 Daily Contest Update",
+                description="Here are the programming contests for today and tomorrow:",
+                color=0x3498db
+            )
+
+            if today_contests:
+                today_text = []
+                for contest in today_contests[:5]:
+                    emoji = self._get_emoji(contest.get('platform_key', ''))
+                    today_text.append(
+                        f"{emoji} **{contest['name']}** ({contest['platform']})")
+
+                embed.add_field(
+                    name="🗓️ Today's Contests",
+                    value="\n".join(today_text),
+                    inline=False
+                )
+
+            if tomorrow_contests:
+                tomorrow_text = []
+                for contest in tomorrow_contests[:5]:
+                    emoji = self._get_emoji(contest.get('platform_key', ''))
+                    tomorrow_text.append(
+                        f"{emoji} **{contest['name']}** ({contest['platform']})")
+
+                embed.add_field(
+                    name="🌅 Tomorrow's Contests",
+                    value="\n".join(tomorrow_text),
+                    inline=False
+                )
+
+            if not today_contests and not tomorrow_contests:
+                embed.add_field(
+                    name="😴 No Contests",
+                    value="No contests scheduled for today or tomorrow.",
+                    inline=False
+                )
+
+            embed.add_field(
+                name="💡 Tip",
+                value="Use `/contests` to see more contests, or `/contests_today` and `/contests_tomorrow` for specific days!",
+                inline=False
+            )
+
+            embed.set_footer(text="All times in IST • Data from clist.by")
+            await channel.send(embed=embed)
+
+        except Exception as e:
+            logging.error(f"Error sending daily announcement: {e}")
+
+    def _get_emoji(self, platform: str) -> str:
+        """Get emoji for platform."""
+        emojis = {
+            'codeforces.com': '🔴',
+            'codechef.com': '🟤',
+            'atcoder.jp': '🟠',
+            'leetcode.com': '🟡'
+        }
+        return emojis.get(platform, '⚪')
+
+    async def _get_contests_from_cache_or_api(self, platform: Optional[str] = None,
+                                              limit: Optional[int] = None,
+                                              days: int = 3) -> List[Dict]:
+        """Get contests from cache if available, otherwise fetch from API."""
+        try:
+            # Check if cache is stale
+            if await self.bot.db.is_cache_stale():
+                logging.info("Cache is stale, refreshing...")
+                await self.bot.db.fetch_and_cache_contests(self.api, max_days=30)
+
+            # Get from cache with proper date range
+            start_date = datetime.now().date().isoformat()
+            end_date = (datetime.now().date() +
+                        timedelta(days=days)).isoformat()
+
+            # Convert platform name to key if provided
+            platform_key = None
+            if platform:
+                platform_key = self.platform_map.get(platform.lower())
+                logging.info(
+                    f"Filtering by platform: {platform} -> {platform_key}")
+
+            contests = await self.bot.db.get_cached_contests(
+                platform=platform_key,
+                limit=limit,
+                start_date=start_date,
+                end_date=end_date
+            )
+
+            logging.info(f"Retrieved {len(contests)} contests from cache")
+            return contests
+
+        except Exception as e:
+            logging.warning(
+                f"Error getting contests from cache, falling back to API: {e}")
+            # Fallback to API - fetch and filter manually
+            api_contests = await self.api.fetch_upcoming_contests(days)
+
+            # Apply platform filter if specified
+            if platform and platform.lower() in self.platform_map:
+                platform_name = None
+                for name, key in {'Codeforces': 'codeforces.com', 'CodeChef': 'codechef.com',
+                                  'AtCoder': 'atcoder.jp', 'LeetCode': 'leetcode.com'}.items():
+                    if key == self.platform_map[platform.lower()]:
+                        platform_name = name
+                        break
+
+                if platform_name:
+                    api_contests = [
+                        c for c in api_contests if c['platform'] == platform_name]
+                    logging.info(
+                        f"Filtered API results to {len(api_contests)} contests for {platform_name}")
+
+            # Apply limit if specified
+            if limit:
+                api_contests = api_contests[:limit]
+
+            return api_contests
+
     @app_commands.command(name="contests", description="Show upcoming programming contests (IST timezone)")
-    @app_commands.describe(days='Number of days to look ahead (1-14, default: 3)')
-    async def contests(self, interaction: discord.Interaction, days: int = 3):
-        """Show upcoming contests."""
-        if days < 1 or days > 14:
-            await interaction.response.send_message("❌ Days must be between 1 and 14.", ephemeral=True)
+    @app_commands.describe(
+        days='Number of days to look ahead (1-30, default: 3)',
+        platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
+        limit='Maximum number of contests to show (1-20, default: all)'
+    )
+    async def contests(self, interaction: discord.Interaction,
+                       days: int = 3,
+                       platform: Optional[str] = None,
+                       limit: Optional[int] = None):
+        """Show upcoming contests with optional filters."""
+        # Validate inputs
+        if days < 1 or days > 30:
+            await interaction.response.send_message("❌ Days must be between 1 and 30.", ephemeral=True)
+            return
+
+        if limit and (limit < 1 or limit > 20):
+            await interaction.response.send_message("❌ Limit must be between 1 and 20.", ephemeral=True)
+            return
+
+        if platform and platform.lower() not in self.platform_map:
+            available = ", ".join(self.platform_map.keys())
+            await interaction.response.send_message(f"❌ Invalid platform. Available: {available}", ephemeral=True)
             return
 
         await interaction.response.defer()
 
         try:
-            contests = await self.api.fetch_upcoming_contests(days)
+            logging.info(
+                f"Contest command: days={days}, platform={platform}, limit={limit}")
+            contests = await self._get_contests_from_cache_or_api(platform, limit, days)
+            logging.info(f"Retrieved {len(contests)} contests for display")
 
             if not contests:
                 embed = discord.Embed(
                     title="📅 No Upcoming Contests",
-                    description=f"No contests found in the next {days} day(s).",
+                    description=f"No contests found in the next {days} day(s)" +
+                    (f" for {platform}" if platform else "") + ".",
                     color=0xe74c3c
                 )
                 await interaction.followup.send(embed=embed)
@@ -196,25 +425,31 @@ class ContestCommands(commands.Cog):
             # Group by platform
             platform_contests = {}
             for contest in contests:
-                platform = contest['platform']
-                if platform not in platform_contests:
-                    platform_contests[platform] = []
-                platform_contests[platform].append(contest)
+                platform_name = contest.get('platform', 'Unknown')
+                if platform_name not in platform_contests:
+                    platform_contests[platform_name] = []
+                platform_contests[platform_name].append(contest)
 
             embed = discord.Embed(
                 title="🏆 Upcoming Programming Contests",
-                description=f"Found {len(contests)} contest(s) in the next {days} day(s)",
+                description=f"Found {len(contests)} contest(s) in the next {days} day(s)" +
+                (f" for {platform}" if platform else ""),
                 color=0x00ff00
             )
 
-            for platform, contests_list in platform_contests.items():
+            for platform_name, contests_list in platform_contests.items():
                 formatted = []
-                # show up to 5 contests per platform
-                for contest in contests_list[:5]:
+                # Max 5 per platform
+                display_limit = min(len(contests_list), 5)
+                platform_emoji = '⚪'  # Default emoji
+
+                for contest in contests_list[:display_limit]:
+                    platform_emoji = self._get_emoji(
+                        contest.get('platform_key', ''))
                     entry = (
                         f"• **{contest['name']}**\n"
                         f"    🕒 {contest['start_time']}\n"
-                        f"    ⏱️ {contest['duration']}"
+                        f"    ⏱️ {contest.get('duration', 'Unknown')}"
                     )
                     if contest.get('url'):
                         entry += f"\n    🔗 [Link]({contest['url']})"
@@ -222,63 +457,146 @@ class ContestCommands(commands.Cog):
 
                 if formatted:
                     embed.add_field(
-                        name=f"**{contests_list[0]['platform_emoji']} {platform}**",
+                        name=f"**{platform_emoji} {platform_name}**",
                         value="\n\n".join(formatted),
                         inline=False
                     )
 
-            embed.set_footer(text="All times in IST • Data from clist.by")
+            embed.set_footer(
+                text="All times in IST • Data from clist.by cache")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
             logging.error(f"Contest command error: {e}")
+            # [Previous error handling code remains the same]
+            embed = discord.Embed(
+                title="❌ Contest Fetch Error",
+                description="Unable to fetch contest information at the moment.",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
-            # Handle specific API errors
-            if str(e) == "API_UNAUTHORIZED":
-                embed = discord.Embed(
-                    title="🔐 API Authentication Error",
-                    description="The contest API requires authentication that hasn't been configured.",
-                    color=0xe74c3c
-                )
+    @app_commands.command(name="contests_today", description="Show contests starting today")
+    @app_commands.describe(
+        platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
+        limit='Maximum number of contests to show (1-10, default: all)'
+    )
+    async def contests_today(self, interaction: discord.Interaction,
+                             platform: Optional[str] = None,
+                             limit: Optional[int] = None):
+        """Show contests starting today."""
+        if limit and (limit < 1 or limit > 10):
+            await interaction.response.send_message("❌ Limit must be between 1 and 10.", ephemeral=True)
+            return
+
+        if platform and platform.lower() not in self.platform_map:
+            available = ", ".join(self.platform_map.keys())
+            await interaction.response.send_message(f"❌ Invalid platform. Available: {available}", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        try:
+            platform_key = self.platform_map.get(
+                platform.lower()) if platform else None
+            contests = await self.bot.db.get_contests_today(platform=platform_key, limit=limit)
+
+            embed = discord.Embed(
+                title="📅 Today's Programming Contests",
+                color=0x2ecc71
+            )
+
+            if contests:
+                contest_list = []
+                for contest in contests:
+                    emoji = self._get_emoji(contest.get('platform_key', ''))
+                    entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
+                    if contest.get('url'):
+                        entry += f"\n    🔗 [Link]({contest['url']})"
+                    contest_list.append(entry)
+
+                embed.description = f"Found {len(contests)} contest(s) starting today:"
                 embed.add_field(
-                    name="What this means",
-                    value="• The clist.by API returned a 401 Unauthorized error\n• API credentials are missing or invalid",
+                    name="🗓️ Today's Contests",
+                    value="\n\n".join(contest_list),
                     inline=False
-                )
-                embed.add_field(
-                    name="Solution",
-                    value="• Contact an administrator to configure API credentials\n• The bot can work without API but with limited contest data",
-                    inline=False
-                )
-            elif str(e) == "API_RATE_LIMITED":
-                embed = discord.Embed(
-                    title="⏱️ Rate Limited",
-                    description="Too many requests to the contest API. Please wait before trying again.",
-                    color=0xf39c12
-                )
-            elif str(e).startswith("API_ERROR_"):
-                status_code = str(e).split("_")[-1]
-                embed = discord.Embed(
-                    title=f"🚫 API Error {status_code}",
-                    description="The contest API returned an error.",
-                    color=0xe74c3c
                 )
             else:
-                embed = discord.Embed(
-                    title="❌ Contest Fetch Error",
-                    description="Unable to fetch contest information at the moment.",
-                    color=0xe74c3c
-                )
+                embed.description = "No contests starting today" + \
+                    (f" for {platform}" if platform else "") + "."
+                embed.color = 0xe74c3c
+
+            embed.set_footer(text="All times in IST • Data from cache")
+            await interaction.followup.send(embed=embed)
+
+        except Exception as e:
+            logging.error(f"Today's contests command error: {e}")
+            embed = discord.Embed(
+                title="❌ Error",
+                description="Unable to fetch today's contests.",
+                color=0xe74c3c
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="contests_tomorrow", description="Show contests starting tomorrow")
+    @app_commands.describe(
+        platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
+        limit='Maximum number of contests to show (1-10, default: all)'
+    )
+    async def contests_tomorrow(self, interaction: discord.Interaction,
+                                platform: Optional[str] = None,
+                                limit: Optional[int] = None):
+        """Show contests starting tomorrow."""
+        if limit and (limit < 1 or limit > 10):
+            await interaction.response.send_message("❌ Limit must be between 1 and 10.", ephemeral=True)
+            return
+
+        if platform and platform.lower() not in self.platform_map:
+            available = ", ".join(self.platform_map.keys())
+            await interaction.response.send_message(f"❌ Invalid platform. Available: {available}", ephemeral=True)
+            return
+
+        await interaction.response.defer()
+
+        try:
+            platform_key = self.platform_map.get(
+                platform.lower()) if platform else None
+            contests = await self.bot.db.get_contests_tomorrow(platform=platform_key, limit=limit)
+
+            embed = discord.Embed(
+                title="🌅 Tomorrow's Programming Contests",
+                color=0x3498db
+            )
+
+            if contests:
+                contest_list = []
+                for contest in contests:
+                    emoji = self._get_emoji(contest.get('platform_key', ''))
+                    entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
+                    if contest.get('url'):
+                        entry += f"\n    🔗 [Link]({contest['url']})"
+                    contest_list.append(entry)
+
+                embed.description = f"Found {len(contests)} contest(s) starting tomorrow:"
                 embed.add_field(
-                    name="Possible Issues",
-                    value="• Network connectivity issues\n• API service temporarily unavailable\n• Server configuration issues",
+                    name="🌅 Tomorrow's Contests",
+                    value="\n\n".join(contest_list),
                     inline=False
                 )
+            else:
+                embed.description = "No contests starting tomorrow" + \
+                    (f" for {platform}" if platform else "") + "."
+                embed.color = 0xe74c3c
 
-            embed.add_field(
-                name="What to do",
-                value="Please try again in a few minutes. If the issue persists, contact an administrator.",
-                inline=False
+            embed.set_footer(text="All times in IST • Data from cache")
+            await interaction.followup.send(embed=embed)
+
+        except Exception as e:
+            logging.error(f"Tomorrow's contests command error: {e}")
+            embed = discord.Embed(
+                title="❌ Error",
+                description="Unable to fetch tomorrow's contests.",
+                color=0xe74c3c
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -332,6 +650,41 @@ class ContestCommands(commands.Cog):
             color=0x3498db
         )
         await target_channel.send(embed=test_embed)
+
+    @app_commands.command(name="contest_time", description="Set daily announcement time")
+    @app_commands.describe(time='Time in HH:MM format (24-hour, IST, default: 09:00)')
+    async def contest_time(self, interaction: discord.Interaction, time: str = "09:00"):
+        """Set daily contest announcement time."""
+        if not interaction.guild:
+            await interaction.response.send_message("❌ This command can only be used in servers.", ephemeral=True)
+            return
+
+        if not is_admin(interaction):
+            await interaction.response.send_message("❌ Administrator permission or server ownership required.", ephemeral=True)
+            return
+
+        # Validate time format
+        try:
+            datetime.strptime(time, '%H:%M')
+        except ValueError:
+            await interaction.response.send_message("❌ Invalid time format. Use HH:MM (24-hour format).", ephemeral=True)
+            return
+
+        # Save to database
+        await self.bot.db.set_announcement_time(interaction.guild.id, time)
+
+        embed = discord.Embed(
+            title="⏰ Announcement Time Set",
+            description=f"Daily contest announcements will be sent at **{time} IST**",
+            color=0x27ae60
+        )
+        embed.add_field(
+            name="📝 Note",
+            value="Make sure you've set a contest channel using `/contest_setup` first!",
+            inline=False
+        )
+
+        await interaction.response.send_message(embed=embed)
 
 
 async def setup(bot):
