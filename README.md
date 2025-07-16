@@ -93,7 +93,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 
 - `/contests_tomorrow [platform] [limit:1-10]` - Tomorrow's contests
 
-**Platform Options**: `codeforces` 🟦, `codechef` 🟡, `atcoder` 🟠, `leetcode` 🟢
+**Platform Options**: `codeforces` 🔵, `codechef` 🟡, `atcoder` 🟠, `leetcode` 🟢
 
 ### Admin Commands (Admin Role Required)
 
