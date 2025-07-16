@@ -14,6 +14,14 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - **Flexible Queries**: Filter by days (1-30), platform, and limit results
 - **IST Timezone**: All times displayed in Indian Standard Time
 
+### 🎭 Automatic Role Management
+
+- **Discord Veteran Role**: Automatically assigns "Discord Veteran" role to members with 5+ year old Discord accounts
+- **On-Join Detection**: New members are automatically checked and assigned veteran role if qualified
+- **Daily Role Checks**: Background task runs daily to check existing members
+- **Manual Role Check**: Admin command to manually trigger veteran role assignment
+- **Smart Role Creation**: Automatically creates the role if it doesn't exist
+
 ### 🔧 Admin Management
 
 - **Manual Cache Refresh**: `/refresh_contests` for immediate data updates
@@ -37,6 +45,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 ├── features/               # Modular features
 │   ├── admin/              # Admin commands and role management
 │   ├── contests/           # Contest system with caching
+│   ├── roles/              # Automatic role management system
 │   └── utilities/          # Basic utility commands
 ├── database/               # All database files
 ├── logs/                   # Bot logs and debugging
@@ -70,7 +79,19 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
    # Edit .env with your bot token and API credentials
    ```
 
-3. **Run the Bot**
+3. **Bot Permissions Setup**
+
+   When inviting the bot to your Discord server, ensure it has these permissions:
+
+   - **Manage Roles**: Required for automatic Discord Veteran role assignment
+   - **View Channels**: Basic permission to see channels
+   - **Send Messages**: To send contest announcements and command responses
+   - **Use Slash Commands**: Modern Discord command interface
+   - **Manage Server**: For admin features (optional, for server owners only)
+
+   **Important**: The bot must have a role higher than the "Discord Veteran" role in the role hierarchy to assign it to members.
+
+4. **Run the Bot**
    ```bash
    python run.py
    ```
@@ -100,6 +121,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - `/refresh_contests` - Manually refresh contest cache (bypasses daily refresh)
 - `/contest_setup [channel]` - Set contest announcement channel
 - `/contest_time [time]` - Configure announcement time (24-hour format HH:MM IST)
+- `/check_veterans` - Manually check and assign Discord Veteran roles to qualifying members
 - `/info` - Show bot statistics and server information
 - `/sync` - Sync slash commands with Discord
 
@@ -113,6 +135,10 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - `/ping` - Check bot latency
 - `/hello` - Friendly greeting
 - `/help` - Show all commands
+
+### Role Information Commands
+
+- `/veteran_info` - Show Discord Veteran role criteria and your qualification status
 
 ## 🔐 Administrator Privileges
 
@@ -136,9 +162,11 @@ To use admin-only commands, you need to have the **Administrator** permission in
 ### Automated Features
 
 - **Daily Cache Refresh**: Contest data automatically refreshes every day at 00:00 IST
+- **Discord Veteran Roles**: Daily check and assignment of veteran roles to qualifying members
 - **Smart Caching**: 30-day contest data cached locally for instant responses
 - **Contest Announcements**: Configurable daily announcements in designated channels
 - **Status Detection**: Real-time contest status updates (upcoming/running/ended)
+- **Member Join Detection**: Automatic veteran role assignment for new members
 
 ### Data Management
 
@@ -188,7 +216,6 @@ logs/             # Bot operation logs
 - **Memory Efficient**: Smart caching reduces API calls by 95%
 - **Background Tasks**: Non-blocking daily refresh and announcements
 - **Error Recovery**: Automatic retry mechanisms and fallback strategies
-
 
 ## 📝 License
 

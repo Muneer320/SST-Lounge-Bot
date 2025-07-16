@@ -13,8 +13,12 @@ core/
 └── config.py           # Configuration management
 
 features/
+├── admin/
+│   └── admin.py        # Admin commands and permissions
 ├── contests/
 │   └── contests.py     # Contest tracking, caching, and automation
+├── roles/
+│   └── roles.py        # Automatic role management system
 └── utilities/
     └── utilities.py    # Basic utility commands
 
@@ -46,6 +50,22 @@ logs/                   # Bot operation logs
   - **Admin Management**: Role-based permissions and manual refresh capabilities
   - **IST Timezone**: All times displayed in Indian Standard Time
   - **Database Integration**: SQLite with optimized indexing for instant responses
+
+### Role Management System (`features/roles/roles.py`)
+
+- **Purpose**: Automatic role assignment based on Discord account age and criteria
+- **Commands**:
+
+  - `/check_veterans` - Manual veteran role check and assignment (Admin only)
+  - `/veteran_info` - Show Discord Veteran role criteria and user's qualification status
+
+- **Automatic Features**:
+  - **Discord Veteran Role**: Automatically assigns role to members with 5+ year old Discord accounts
+  - **On-Join Detection**: New members are checked and assigned veteran role immediately if qualified
+  - **Daily Background Checks**: Runs daily to check existing members who may have become eligible
+  - **Smart Role Creation**: Creates the "Discord Veteran" role automatically if it doesn't exist
+  - **Rate Limit Protection**: Includes delays to avoid Discord API rate limits
+  - **Comprehensive Logging**: Detailed logs for all role assignments and checks
 
 ### Utility System (`features/utilities/utilities.py`)
 

@@ -16,6 +16,7 @@ class SSTLoungeBot(commands.Bot):
         # Bot setup with only slash commands
         intents = discord.Intents.default()
         intents.message_content = True
+        intents.members = True  # Required for member join events and fetching member list
 
         super().__init__(
             command_prefix='!',  # Prefix won't be used since we only use slash commands
@@ -52,7 +53,8 @@ class SSTLoungeBot(commands.Bot):
         features = [
             'features.contests.contests',
             'features.utilities.utilities',
-            'features.admin.admin'
+            'features.admin.admin',
+            'features.roles.roles'
         ]
 
         for feature in features:
