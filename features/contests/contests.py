@@ -13,6 +13,9 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 
+# Import the admin check function
+from features.admin.admin import is_admin
+
 
 class ContestAPI:
     """Handles contest data fetching from clist.by API."""
@@ -50,17 +53,35 @@ class ContestAPI:
                 'format': 'json'
             }
 
+            # Log the complete URL being used
+            url_with_params = f"{self.base_url}?" + \
+                "&".join([f"{k}={v}" for k, v in params.items()])
+            logging.info(f"Fetching contests from: {url_with_params}")
+
             async with session.get(self.base_url, params=params) as response:
+                logging.info(f"API Response Status: {response.status}")
+
                 if response.status == 200:
                     data = await response.json()
+                    contest_count = len(data.get('objects', []))
+                    logging.info(
+                        f"Successfully fetched {contest_count} contests")
                     return self._process_contests(data.get('objects', []))
+                elif response.status == 401:
+                    logging.error(
+                        "API Error 401: Unauthorized - Invalid or missing API credentials")
+                    raise Exception("API_UNAUTHORIZED")
+                elif response.status == 429:
+                    logging.error("API Error 429: Rate limited")
+                    raise Exception("API_RATE_LIMITED")
                 else:
-                    logging.error(f"API Error: {response.status}")
-                    return []
+                    error_text = await response.text()
+                    logging.error(f"API Error {response.status}: {error_text}")
+                    raise Exception(f"API_ERROR_{response.status}")
 
         except Exception as e:
             logging.error(f"Contest fetch error: {e}")
-            return []
+            raise e
 
     def _process_contests(self, raw_contests: List[Dict]) -> List[Dict]:
         """Process and format contest data."""
@@ -196,16 +217,49 @@ class ContestCommands(commands.Cog):
 
         except Exception as e:
             logging.error(f"Contest command error: {e}")
-            embed = discord.Embed(
-                title="❌ Contest Fetch Error",
-                description="Unable to fetch contest information at the moment.",
-                color=0xe74c3c
-            )
-            embed.add_field(
-                name="Possible Issues",
-                value="• API service temporarily unavailable\n• Network connectivity issues\n• Rate limiting",
-                inline=False
-            )
+
+            # Handle specific API errors
+            if str(e) == "API_UNAUTHORIZED":
+                embed = discord.Embed(
+                    title="🔐 API Authentication Error",
+                    description="The contest API requires authentication that hasn't been configured.",
+                    color=0xe74c3c
+                )
+                embed.add_field(
+                    name="What this means",
+                    value="• The clist.by API returned a 401 Unauthorized error\n• API credentials are missing or invalid",
+                    inline=False
+                )
+                embed.add_field(
+                    name="Solution",
+                    value="• Contact an administrator to configure API credentials\n• The bot can work without API but with limited contest data",
+                    inline=False
+                )
+            elif str(e) == "API_RATE_LIMITED":
+                embed = discord.Embed(
+                    title="⏱️ Rate Limited",
+                    description="Too many requests to the contest API. Please wait before trying again.",
+                    color=0xf39c12
+                )
+            elif str(e).startswith("API_ERROR_"):
+                status_code = str(e).split("_")[-1]
+                embed = discord.Embed(
+                    title=f"🚫 API Error {status_code}",
+                    description="The contest API returned an error.",
+                    color=0xe74c3c
+                )
+            else:
+                embed = discord.Embed(
+                    title="❌ Contest Fetch Error",
+                    description="Unable to fetch contest information at the moment.",
+                    color=0xe74c3c
+                )
+                embed.add_field(
+                    name="Possible Issues",
+                    value="• Network connectivity issues\n• API service temporarily unavailable\n• Server configuration issues",
+                    inline=False
+                )
+
             embed.add_field(
                 name="What to do",
                 value="Please try again in a few minutes. If the issue persists, contact an administrator.",
@@ -217,15 +271,17 @@ class ContestCommands(commands.Cog):
     @app_commands.describe(channel='Channel for contest announcements (default: current channel)')
     async def contest_setup(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
         """Set up contest announcement channel."""
-        # Check if user has admin permissions
+        # Check if command is used in a guild
         if not interaction.guild:
             await interaction.response.send_message("❌ This command can only be used in servers.", ephemeral=True)
             return
 
-        member = interaction.guild.get_member(interaction.user.id)
-        if not member or not member.guild_permissions.administrator:
-            await interaction.response.send_message("❌ Administrator permission required.", ephemeral=True)
+        # Check if user has admin permissions
+        if not is_admin(interaction):
+            await interaction.response.send_message("❌ Administrator permission or server ownership required.", ephemeral=True)
             return
+
+        logging.info(f"Contest setup command used by {interaction.user}")
 
         target_channel = channel or interaction.channel
 
@@ -244,6 +300,8 @@ class ContestCommands(commands.Cog):
 
         # Save to database
         await self.bot.db.set_contest_channel(interaction.guild.id, target_channel.id)
+        logging.info(
+            f"Contest channel set to {target_channel.name} for guild {interaction.guild.name}")
 
         embed = discord.Embed(
             title="✅ Contest Channel Configured",
