@@ -443,7 +443,9 @@ class AdminCommands(commands.Cog):
                     disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
                     disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
                     
-                    await button_interaction.response.edit_message(view=disabled_view)
+                    # Mark the buttons as disabled and defer the response
+                    # This consumes the interaction response but doesn't send a message
+                    await button_interaction.response.edit_message(content="🔄 Starting update process...", view=disabled_view)
                     
                     # Start update
                     if self.bot is not None:
