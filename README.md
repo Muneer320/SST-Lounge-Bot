@@ -183,8 +183,6 @@ We welcome contributions from the SST Batch '29 community! Whether you want to r
 
 ### 📋 Areas We Need Help With
 
-- Contest platform integrations (HackerRank, TopCoder, etc.)
-- UI/UX improvements for embeds and responses
 - Additional utility commands for batch coordination
 - Documentation and help text improvements
 - Bug fixes and performance optimizations
