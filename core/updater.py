@@ -228,7 +228,15 @@ class GitUpdater:
             async with aiohttp.ClientSession() as session:
                 async with session.get(version_url) as response:
                     if response.status == 200:
-                        self.remote_version = await response.json()
+                        # Get the text content first and then manually parse it as JSON
+                        # This avoids issues with content-type mismatches
+                        content = await response.text()
+                        try:
+                            self.remote_version = json.loads(content)
+                        except json.JSONDecodeError as e:
+                            logger.error(f"Failed to parse version.json content: {e}")
+                            logger.debug(f"Raw content: {content[:500]}")
+                            return False
                         
                         # Compare versions
                         current_version = self.current_version.get("version", "0.0.0")
