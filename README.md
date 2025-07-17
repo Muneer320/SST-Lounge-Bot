@@ -22,12 +22,20 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - **Manual Role Check**: Admin command to manually trigger veteran role assignment
 - **Smart Role Creation**: Automatically creates the role if it doesn't exist
 
-### 🔧 Admin Management
+### �️ Bot Admin System
+
+- **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
+- **Bot-Level Privileges**: Custom admin system that doesn't affect Discord server permissions
+- **User and Role Support**: Grant admin privileges to specific users or entire roles
+- **Owner Control**: Only server owners can grant/revoke bot admin privileges
+- **Admin Transparency**: List all bot admins with grant history
+
+### �🔧 Admin Management
 
 - **Manual Cache Refresh**: `/refresh_contests` for immediate data updates
-- **Role Management**: Grant/revoke admin privileges (Owner only)
+- **Bot Admin Management**: Grant/revoke bot-level admin privileges (Owner only)
 - **Channel Configuration**: Set contest announcement channels and timing
-- **Permission System**: Robust admin privilege checking
+- **Permission System**: Robust three-tier admin privilege checking
 
 ### 🏗️ Architecture
 
@@ -116,7 +124,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 
 **Platform Options**: `codeforces` 🔵, `codechef` 🟡, `atcoder` 🟠, `leetcode` 🟢
 
-### Admin Commands (Admin Role Required)
+### Admin Commands (Bot Admin Required)
 
 - `/refresh_contests` - Manually refresh contest cache (bypasses daily refresh)
 - `/contest_setup [channel]` - Set contest announcement channel
@@ -124,11 +132,12 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - `/check_veterans` - Manually check and assign Discord Veteran roles to qualifying members
 - `/info` - Show bot statistics and server information
 - `/sync` - Sync slash commands with Discord
+- `/list_admins` - List all bot admins (shows grant history)
 
 ### Owner Commands (Server Owner Only)
 
-- `/grant_admin [user]` - Grant admin privileges to a user
-- `/revoke_admin [user]` - Remove admin privileges from a user
+- `/grant_admin [user] or [role]` - Grant bot admin privileges to a user or role
+- `/revoke_admin [user] or [role]` - Remove bot admin privileges from a user or role
 
 ### Utility Commands
 
@@ -140,22 +149,30 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 
 - `/veteran_info` - Show Discord Veteran role criteria and your qualification status
 
-## 🔐 Administrator Privileges
+## 🔐 Bot Administrator Privileges
 
-To use admin-only commands, you need to have the **Administrator** permission in your Discord server or be granted admin privileges by the server owner.
+The bot uses a **three-tier permission system** for administrative commands:
 
-1. **Server Owner**: The server owner automatically has all permissions
-2. **Role-based**: Server owners/admins can assign you a role with Administrator permission:
-   - Server Settings → Roles → Create/Edit Role → Enable "Administrator"
-   - Or assign you to an existing admin role
-3. **Permission-based**: Alternatively, specific permissions can be granted for individual commands
+### Permission Levels (in order of precedence):
 
-### Admin Commands:
+1. **Server Owner**: The Discord server owner automatically has all bot admin privileges
+2. **Discord Administrators**: Users with Discord's Administrator permission have bot admin access
+3. **Bot Admins**: Users or roles specifically granted bot admin privileges by the server owner
 
-- `/sync` - Sync slash commands with Discord
-- `/contest_setup` - Configure contest announcement channel
+### Bot Admin System:
 
-### Public Commands:
+- **Bot-Level Only**: Bot admin privileges don't affect Discord server permissions
+- **Granular Control**: Server owners can grant admin access without giving Discord admin permissions
+- **User and Role Support**: Grant privileges to individual users or entire roles
+- **Transparent Management**: Use `/list_admins` to see all current bot admins and who granted them access
+
+### How to Grant Bot Admin Access:
+
+1. **Must be Server Owner**: Only the Discord server owner can grant/revoke bot admin privileges
+2. **Grant to User**: `/grant_admin user:@username` - Gives that specific user bot admin access
+3. **Grant to Role**: `/grant_admin role:@rolename` - Gives all members of that role bot admin access
+4. **View Admins**: `/list_admins` - Shows all current bot admins with grant history
+5. **Revoke Access**: `/revoke_admin user:@username` or `/revoke_admin role:@rolename`
 
 ## 🤖 Bot Behavior
 

@@ -71,8 +71,11 @@ def main():
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")
+        sys.exit(0)
     except Exception as e:
         print(f"❌ Bot crashed: {e}")
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
 
 

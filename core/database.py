@@ -69,6 +69,19 @@ class SimpleDB:
             ON contest_cache(start_time)
         """)
 
+        # Bot admins table for custom bot-level admin privileges
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS bot_admins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id INTEGER NOT NULL,
+                user_id INTEGER,
+                role_id INTEGER,
+                granted_by INTEGER NOT NULL,
+                granted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(guild_id, user_id, role_id)
+            )
+        """)
+
         await self.connection.commit()
 
     # Guild Settings Methods
@@ -383,12 +396,109 @@ class SimpleDB:
                     continue
 
             await self.connection.commit()
-            logging.info(f"Successfully cached {cached_count} contests")
+            logging.info(
+                f"Cached {cached_count} contests from {len(contests)} fetched")
             return cached_count
 
         except Exception as e:
             logging.error(f"Error caching contests: {e}")
             return 0
+
+    # Bot Admin Methods
+    async def grant_bot_admin(self, guild_id: int, user_id: Optional[int] = None, role_id: Optional[int] = None, granted_by: Optional[int] = None):
+        """Grant bot admin privileges to a user or role."""
+        if not self.connection:
+            return False
+
+        if not user_id and not role_id:
+            return False
+
+        try:
+            await self.connection.execute("""
+                INSERT OR REPLACE INTO bot_admins (guild_id, user_id, role_id, granted_by)
+                VALUES (?, ?, ?, ?)
+            """, (guild_id, user_id, role_id, granted_by))
+            await self.connection.commit()
+            return True
+        except Exception as e:
+            logging.error(f"Error granting bot admin: {e}")
+            return False
+
+    async def revoke_bot_admin(self, guild_id: int, user_id: Optional[int] = None, role_id: Optional[int] = None):
+        """Revoke bot admin privileges from a user or role."""
+        if not self.connection:
+            return False
+
+        if not user_id and not role_id:
+            return False
+
+        try:
+            if user_id:
+                await self.connection.execute("""
+                    DELETE FROM bot_admins WHERE guild_id = ? AND user_id = ?
+                """, (guild_id, user_id))
+            elif role_id:
+                await self.connection.execute("""
+                    DELETE FROM bot_admins WHERE guild_id = ? AND role_id = ?
+                """, (guild_id, role_id))
+            await self.connection.commit()
+            return True
+        except Exception as e:
+            logging.error(f"Error revoking bot admin: {e}")
+            return False
+
+    async def is_bot_admin(self, guild_id: int, user_id: int, user_roles: Optional[List[int]] = None) -> bool:
+        """Check if a user has bot admin privileges."""
+        if not self.connection:
+            return False
+
+        try:
+            # Check direct user admin privileges
+            cursor = await self.connection.execute("""
+                SELECT 1 FROM bot_admins WHERE guild_id = ? AND user_id = ?
+            """, (guild_id, user_id))
+            if await cursor.fetchone():
+                return True
+
+            # Check role-based admin privileges
+            if user_roles:
+                placeholders = ','.join('?' * len(user_roles))
+                cursor = await self.connection.execute(f"""
+                    SELECT 1 FROM bot_admins 
+                    WHERE guild_id = ? AND role_id IN ({placeholders})
+                """, [guild_id] + user_roles)
+                if await cursor.fetchone():
+                    return True
+
+            return False
+        except Exception as e:
+            logging.error(f"Error checking bot admin: {e}")
+            return False
+
+    async def get_bot_admins(self, guild_id: int) -> List[Dict]:
+        """Get all bot admins for a guild."""
+        if not self.connection:
+            return []
+
+        try:
+            cursor = await self.connection.execute("""
+                SELECT user_id, role_id, granted_by, granted_at 
+                FROM bot_admins WHERE guild_id = ?
+                ORDER BY granted_at DESC
+            """, (guild_id,))
+
+            admins = []
+            async for row in cursor:
+                admins.append({
+                    'user_id': row[0],
+                    'role_id': row[1],
+                    'granted_by': row[2],
+                    'granted_at': row[3]
+                })
+            return admins
+        except Exception as e:
+            logging.error(f"Error getting bot admins: {e}")
+            return []
 
     async def close(self):
         """Close database connection."""

@@ -55,9 +55,14 @@ class UtilityCommands(commands.Cog):
             name="🏆 Contest Commands",
             value="• `/contests [days] [platform] [limit]` - Show upcoming contests\n"
                   "• `/contests_today [platform] [limit]` - Show today's contests\n"
-                  "• `/contests_tomorrow [platform] [limit]` - Show tomorrow's contests\n"
-                  "• `/contest_setup [channel]` - Set contest channel (Admin)\n"
-                  "• `/contest_time [time]` - Set announcement time (Admin)",
+                  "• `/contests_tomorrow [platform] [limit]` - Show tomorrow's contests",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🎭 Role Commands",
+            value="• `/veteran_info` - Show Discord Veteran role criteria\n"
+                  "• `/check_veterans` - Check veteran roles (Admin only)",
             inline=False
         )
 
@@ -73,8 +78,17 @@ class UtilityCommands(commands.Cog):
             name="⚙️ Admin Commands",
             value="• `/info` - Show bot information\n"
                   "• `/sync` - Sync slash commands\n"
-                  "• `/grant_admin [user/role]` - Grant admin privileges (Owner only)\n"
-                  "• `/revoke_admin [user/role]` - Revoke admin privileges (Owner only)",
+                  "• `/grant_admin [user/role]` - Grant bot admin privileges (Owner only)\n"
+                  "• `/revoke_admin [user/role]` - Revoke bot admin privileges (Owner only)\n"
+                  "• `/list_admins` - List all bot admins",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🏗️ Contest Setup (Admin)",
+            value="• `/contest_setup [channel]` - Set contest channel\n"
+                  "• `/contest_time [time]` - Set announcement time\n"
+                  "• `/refresh_contests` - Refresh contest cache",
             inline=False
         )
 

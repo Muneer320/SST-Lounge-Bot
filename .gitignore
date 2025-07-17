@@ -74,6 +74,7 @@ database/
 # Logs
 logs/
 *.log
+CHANGELOG.md
 
 # Bot specific
 config.json

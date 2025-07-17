@@ -27,6 +27,10 @@ class SSTLoungeBot(commands.Bot):
         # Initialize database
         self.db = SimpleDB()
 
+        # Ensure logs directory exists
+        from pathlib import Path
+        Path("logs").mkdir(exist_ok=True)
+
         # Setup logging
         logging.basicConfig(
             level=logging.INFO,
