@@ -394,6 +394,84 @@ class AdminCommands(commands.Cog):
             logging.error(f"Error listing bot admins: {e}")
             await interaction.response.send_message(f"❌ Failed to list bot admins: {str(e)}", ephemeral=True)
 
+    @app_commands.command(name='update', description='Update the bot to the latest version')
+    async def update_bot(self, interaction: discord.Interaction):
+        """Update the bot to the latest version from GitHub."""
+        # Check if user has bot admin privileges
+        if not await is_bot_admin(interaction, self.bot):
+            await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
+            return
+
+        logging.info(f"Update command used by {interaction.user}")
+
+        try:
+            # Check if update is available
+            update_available, version_info = await self.bot.updater.check_for_updates()
+            
+            if not update_available:
+                await interaction.response.send_message("✅ Bot is already at the latest version.", ephemeral=True)
+                return
+            
+            # Get version info
+            current_version = self.bot.updater.current_version.get('version', 'unknown')
+            new_version = version_info.get('version', 'unknown') if version_info else 'unknown'
+            description = version_info.get('description', 'No description available') if version_info else 'No description available'
+            
+            # Confirm the update
+            embed = discord.Embed(
+                title="🔄 Update Available",
+                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version}?",
+                color=0x3498db
+            )
+            embed.add_field(name="Description", value=description, inline=False)
+            embed.add_field(name="Warning", value="Bot will restart during the update process.", inline=False)
+            
+            # Create confirmation buttons
+            class ConfirmView(discord.ui.View):
+                def __init__(self, *, timeout=180, bot=None):
+                    super().__init__(timeout=timeout)
+                    self.bot = bot
+                
+                @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
+                async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+                    if button_interaction.user.id != interaction.user.id:
+                        await button_interaction.response.send_message("❌ Only the command user can confirm.", ephemeral=True)
+                        return
+                    
+                    # Create a new view with disabled buttons
+                    disabled_view = discord.ui.View()
+                    disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
+                    disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
+                    
+                    await button_interaction.response.edit_message(view=disabled_view)
+                    
+                    # Start update
+                    if self.bot is not None:
+                        await self.bot.updater.update(button_interaction)
+                    else:
+                        await button_interaction.followup.send("Bot reference is missing. Update failed.", ephemeral=True)
+                
+                @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
+                async def cancel_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
+                    if button_interaction.user.id != interaction.user.id:
+                        await button_interaction.response.send_message("❌ Only the command user can cancel.", ephemeral=True)
+                        return
+                    
+                    # Create a new view with disabled buttons
+                    disabled_view = discord.ui.View()
+                    disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
+                    disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
+                    
+                    await button_interaction.response.edit_message(content="Update cancelled.", embed=None, view=disabled_view)
+            
+            # Send confirmation message with buttons
+            view = ConfirmView(bot=self.bot)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logging.error(f"Error in update command: {e}")
+            await interaction.response.send_message(f"❌ Error checking for updates: {str(e)}", ephemeral=True)
+
 
 async def setup(bot):
     """Load the admin feature."""

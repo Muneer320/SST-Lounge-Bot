@@ -1,0 +1,9 @@
+{
+    "version": "1.3.0",
+    "date": "2024-12-30",
+    "name": "SST Lounge Bot",
+    "description": "Manual update command and version tracking",
+    "branch": "main",
+    "author": "SST Team",
+    "repository": "https://github.com/Muneer320/SST-Lounge-Bot"
+} 
