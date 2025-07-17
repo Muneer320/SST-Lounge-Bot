@@ -7,7 +7,26 @@ import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
-from typing import Optional
+from typing import Optional, List
+import asyncio
+from datetime import datetime, timedelta
+
+
+# Autocomplete function for schedule parameter
+async def schedule_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    now = datetime.now()
+    options = [
+        ("Now", "now"),
+        ("In 1 hour", (now + timedelta(hours=1)).strftime("%H:%M")),
+        ("Tonight", "23:00"),
+        ("Midnight", "00:00"),
+        ("Tomorrow morning", "08:00"),
+    ]
+    
+    return [
+        app_commands.Choice(name=label, value=value)
+        for label, value in options if current.lower() in label.lower() or current.lower() in value.lower()
+    ]
 
 
 def is_admin(interaction: discord.Interaction) -> bool:
@@ -395,14 +414,18 @@ class AdminCommands(commands.Cog):
             await interaction.response.send_message(f"❌ Failed to list bot admins: {str(e)}", ephemeral=True)
 
     @app_commands.command(name='update', description='Update the bot to the latest version')
-    async def update_bot(self, interaction: discord.Interaction):
+    @app_commands.describe(
+        schedule='Schedule the update for a specific time (default: now)'
+    )
+    @app_commands.autocomplete(schedule=schedule_autocomplete)
+    async def update_bot(self, interaction: discord.Interaction, schedule: Optional[str] = "now"):
         """Update the bot to the latest version from GitHub."""
         # Check if user has bot admin privileges
         if not await is_bot_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
 
-        logging.info(f"Update command used by {interaction.user}")
+        logging.info(f"Update command used by {interaction.user} with schedule: {schedule}")
 
         try:
             # Check if update is available
@@ -417,10 +440,34 @@ class AdminCommands(commands.Cog):
             new_version = version_info.get('version', 'unknown') if version_info else 'unknown'
             description = version_info.get('description', 'No description available') if version_info else 'No description available'
             
+            # Handle scheduled updates
+            scheduled_time = None
+            if schedule and schedule.lower() != "now":
+                try:
+                    # Parse the time
+                    hour, minute = map(int, schedule.split(':'))
+                    now = datetime.now()
+                    scheduled_time = now.replace(hour=hour, minute=minute)
+                    
+                    # If the time is in the past, schedule for tomorrow
+                    if scheduled_time < now:
+                        scheduled_time = scheduled_time + timedelta(days=1)
+                        
+                    time_diff = scheduled_time - now
+                    hours, remainder = divmod(time_diff.seconds, 3600)
+                    minutes, _ = divmod(remainder, 60)
+                    
+                    schedule_text = f"scheduled for {scheduled_time.strftime('%H:%M')} (in {hours}h {minutes}m)"
+                except ValueError:
+                    await interaction.response.send_message("❌ Invalid time format. Use HH:MM format or select from autocomplete options.", ephemeral=True)
+                    return
+            else:
+                schedule_text = "now"
+            
             # Confirm the update
             embed = discord.Embed(
                 title="🔄 Update Available",
-                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version}?",
+                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version} {schedule_text}?",
                 color=0x3498db
             )
             embed.add_field(name="Description", value=description, inline=False)
@@ -428,9 +475,10 @@ class AdminCommands(commands.Cog):
             
             # Create confirmation buttons
             class ConfirmView(discord.ui.View):
-                def __init__(self, *, timeout=180, bot=None):
+                def __init__(self, *, timeout=180, bot=None, scheduled_time=None):
                     super().__init__(timeout=timeout)
                     self.bot = bot
+                    self.scheduled_time = scheduled_time
                 
                 @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
                 async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
@@ -443,15 +491,44 @@ class AdminCommands(commands.Cog):
                     disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
                     disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
                     
-                    # Mark the buttons as disabled and defer the response
-                    # This consumes the interaction response but doesn't send a message
-                    await button_interaction.response.edit_message(content="🔄 Starting update process...", view=disabled_view)
-                    
-                    # Start update
-                    if self.bot is not None:
-                        await self.bot.updater.update(button_interaction)
+                    # Process based on scheduling
+                    if self.scheduled_time:
+                        time_diff = self.scheduled_time - datetime.now()
+                        wait_seconds = time_diff.total_seconds()
+                        
+                        if wait_seconds <= 0:
+                            # Scheduled time is now or in the past
+                            await button_interaction.response.edit_message(content="🔄 Starting update process immediately...", view=disabled_view)
+                            if self.bot is not None:
+                                await self.bot.updater.update(button_interaction)
+                        else:
+                            # Schedule for future time
+                            hours, remainder = divmod(int(wait_seconds), 3600)
+                            minutes, seconds = divmod(remainder, 60)
+                            schedule_message = f"✅ Update scheduled for {self.scheduled_time.strftime('%H:%M')} (in {hours}h {minutes}m)"
+                            
+                            await button_interaction.response.edit_message(content=schedule_message, embed=None, view=disabled_view)
+                            
+                            # Create a background task to perform the update at the scheduled time
+                            async def scheduled_update():
+                                await asyncio.sleep(wait_seconds)
+                                try:
+                                    # Send a notification that the scheduled update is starting
+                                    await button_interaction.followup.send("🔄 Scheduled update starting now...", ephemeral=True)
+                                    if self.bot is not None:
+                                        await self.bot.updater.update(None)
+                                except Exception as e:
+                                    logging.error(f"Error in scheduled update: {e}")
+                            
+                            # Start the background task
+                            asyncio.create_task(scheduled_update())
                     else:
-                        await button_interaction.followup.send("Bot reference is missing. Update failed.", ephemeral=True)
+                        # Immediate update
+                        await button_interaction.response.edit_message(content="🔄 Starting update process...", view=disabled_view)
+                        if self.bot is not None:
+                            await self.bot.updater.update(button_interaction)
+                        else:
+                            await button_interaction.followup.send("Bot reference is missing. Update failed.", ephemeral=True)
                 
                 @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
                 async def cancel_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
@@ -467,7 +544,7 @@ class AdminCommands(commands.Cog):
                     await button_interaction.response.edit_message(content="Update cancelled.", embed=None, view=disabled_view)
             
             # Send confirmation message with buttons
-            view = ConfirmView(bot=self.bot)
+            view = ConfirmView(bot=self.bot, scheduled_time=scheduled_time)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
             
         except Exception as e:

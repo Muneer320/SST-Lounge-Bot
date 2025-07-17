@@ -1,7 +1,6 @@
 """
 Contest Feature Module
-Complete contest functionality for SST Lounge Discord Server.
-Handles contest fetching, announcements, and user commands.
+Contest tracking system for SST Lounge Discord Bot.
 """
 
 import os
@@ -17,6 +16,60 @@ from discord import app_commands
 # Import the admin check function
 from features.admin.admin import is_admin
 
+
+# Platforms for autocomplete
+PLATFORMS = ['codeforces', 'codechef', 'atcoder', 'leetcode', 'topcoder', 'hackerrank', 'hackerearth']
+
+# Autocomplete function for platform parameter
+async def platform_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    return [
+        app_commands.Choice(name=platform.capitalize(), value=platform)
+        for platform in PLATFORMS if current.lower() in platform.lower()
+    ]
+
+# Autocomplete function for time parameter
+async def time_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    common_times = ['00:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00']
+    
+    # Filter based on current input
+    filtered_times = [
+        app_commands.Choice(name=f"{time} IST", value=time)
+        for time in common_times if current.lower() in time.lower()
+    ]
+    
+    # If input is a partial match for hours, suggest all options for that hour
+    if current and len(current) <= 2 and current.isdigit():
+        hour = current.zfill(2)
+        hour_times = [f"{hour}:00", f"{hour}:30"]
+        filtered_times.extend([
+            app_commands.Choice(name=f"{time} IST", value=time)
+            for time in hour_times if not any(choice.value == time for choice in filtered_times)
+        ])
+    
+    return filtered_times
+
+# Autocomplete function for channel parameter
+async def channel_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    if not interaction.guild or not isinstance(interaction.user, discord.Member):
+        return []
+    
+    # Get all text channels the user can see
+    channels = [
+        channel for channel in interaction.guild.text_channels
+        if channel.permissions_for(interaction.user).view_channel
+    ]
+    
+    # Filter based on current input
+    filtered_channels = [
+        app_commands.Choice(name=f"#{channel.name}", value=str(channel.id))
+        for channel in channels if current.lower() in channel.name.lower()
+    ]
+    
+    # Add current channel if no input
+    if not current and interaction.channel and isinstance(interaction.channel, discord.TextChannel):
+        filtered_channels.insert(0, app_commands.Choice(name=f"#{interaction.channel.name} (current)", value=str(interaction.channel.id)))
+    
+    return filtered_channels[:25]  # Discord has a limit of 25 choices
 
 class ContestAPI:
     """Handles contest data fetching from clist.by API."""
@@ -277,10 +330,11 @@ class ContestCommands(commands.Cog):
             'atcoder': 'atcoder.jp',
             'leetcode': 'leetcode.com'
         }
+        
         # Start background tasks
         self.refresh_contest_cache.start()
         self.daily_announcements.start()
-
+        
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
         self.refresh_contest_cache.cancel()
@@ -480,6 +534,7 @@ class ContestCommands(commands.Cog):
         platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
         limit='Maximum number of contests to show (1-20, default: all)'
     )
+    @app_commands.autocomplete(platform=platform_autocomplete)
     async def contests(self, interaction: discord.Interaction,
                        days: int = 3,
                        platform: Optional[str] = None,
@@ -576,6 +631,7 @@ class ContestCommands(commands.Cog):
         platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
         limit='Maximum number of contests to show (1-10, default: all)'
     )
+    @app_commands.autocomplete(platform=platform_autocomplete)
     async def contests_today(self, interaction: discord.Interaction,
                              platform: Optional[str] = None,
                              limit: Optional[int] = None):
@@ -693,6 +749,7 @@ class ContestCommands(commands.Cog):
         platform='Filter by platform (codeforces, codechef, atcoder, leetcode)',
         limit='Maximum number of contests to show (1-10, default: all)'
     )
+    @app_commands.autocomplete(platform=platform_autocomplete)
     async def contests_tomorrow(self, interaction: discord.Interaction,
                                 platform: Optional[str] = None,
                                 limit: Optional[int] = None):
@@ -751,8 +808,11 @@ class ContestCommands(commands.Cog):
             await interaction.followup.send(embed=embed, ephemeral=True)
 
     @app_commands.command(name="contest_setup", description="Set contest announcement channel")
-    @app_commands.describe(channel='Channel for contest announcements (default: current channel)')
-    async def contest_setup(self, interaction: discord.Interaction, channel: Optional[discord.TextChannel] = None):
+    @app_commands.describe(
+        channel_id='Channel for contest announcements (default: current channel)'
+    )
+    @app_commands.autocomplete(channel_id=channel_autocomplete)
+    async def contest_setup(self, interaction: discord.Interaction, channel_id: Optional[str] = None):
         """Set up contest announcement channel."""
         # Check if command is used in a guild
         if not interaction.guild:
@@ -766,11 +826,21 @@ class ContestCommands(commands.Cog):
 
         logging.info(f"Contest setup command used by {interaction.user}")
 
-        target_channel = channel or interaction.channel
-
-        if not isinstance(target_channel, discord.TextChannel):
-            await interaction.response.send_message("❌ Please specify a valid text channel.", ephemeral=True)
-            return
+        # Get target channel
+        if channel_id:
+            try:
+                target_channel = interaction.guild.get_channel(int(channel_id))
+                if not target_channel or not isinstance(target_channel, discord.TextChannel):
+                    await interaction.response.send_message("❌ Invalid channel ID or not a text channel.", ephemeral=True)
+                    return
+            except ValueError:
+                await interaction.response.send_message("❌ Invalid channel ID format.", ephemeral=True)
+                return
+        else:
+            target_channel = interaction.channel
+            if not isinstance(target_channel, discord.TextChannel):
+                await interaction.response.send_message("❌ Current channel is not a text channel.", ephemeral=True)
+                return
 
         # Check bot permissions
         permissions = target_channel.permissions_for(interaction.guild.me)
@@ -803,6 +873,7 @@ class ContestCommands(commands.Cog):
 
     @app_commands.command(name="contest_time", description="Set daily announcement time")
     @app_commands.describe(time='Time in HH:MM format (24-hour, IST, default: 09:00)')
+    @app_commands.autocomplete(time=time_autocomplete)
     async def contest_time(self, interaction: discord.Interaction, time: str = "09:00"):
         """Set daily contest announcement time."""
         if not interaction.guild:

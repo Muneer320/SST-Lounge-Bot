@@ -2,7 +2,33 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
-## [1.3.0] - 2024-12-30
+## [1.4.0] - 2025-07-17
+
+### Added
+
+- **Command Autocomplete**: Added interactive autocomplete to multiple commands:
+  - Platform selection in `/contests`, `/contests_today`, and `/contests_tomorrow`
+  - Time selection in `/contest_time` with common time suggestions
+  - Channel selection in `/contest_setup` with user-accessible channels
+  - Update scheduling in `/update` with suggested times
+- **Scheduled Updates**: Added ability to schedule bot updates for specific times
+- **Enhanced Command Interface**: Improved user experience with smart suggestions
+
+### Changed
+
+- **Channel Selection**: Changed from dropdown to autocomplete in `/contest_setup`
+- **Update Command**: Added scheduling options to the update process
+- **Command Parameters**: Improved parameter handling and validation
+- **Error Messages**: More helpful error messages with clearer instructions
+
+### Technical Improvements
+
+- **Autocomplete Functions**: New autocomplete handlers for various parameter types
+- **Time Formatting**: Smart time formatting with hour/minute suggestions
+- **Channel Filtering**: Improved filtering for channel selection
+- **UI/UX**: Enhanced user interface with contextual suggestions
+
+## [1.3.0] - 2025-07-17
 
 ### Added
 
@@ -29,7 +55,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Notification System**: Direct messages to bot administrators for update notifications
 - **Process Management**: Improved restart handling after updates
 
-## [1.2.0] - 2024-12-28
+## [1.2.0] - 2025-07-17
 
 ### Added
 
@@ -57,7 +83,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Process Management**: Clean bot restart after updates
 - **Error Handling**: Graceful handling of git operation failures
 
-## [1.1.0] - 2024-12-19
+## [1.1.0] - 2025-07-17
 
 ### Added
 
@@ -89,7 +115,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Owner Control**: Only server owners can grant/revoke bot admin privileges
 - **Audit Trail**: All bot admin grants tracked with timestamps and granter information
 
-## [1.0.0] - 2024-12-18
+## [1.0.0] - 2025-07-17
 
 ### Initial Release
 
