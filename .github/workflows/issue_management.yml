@@ -1,0 +1,114 @@
+name: Bug Report & Feature Request Automation
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  welcome_contributor:
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome new contributor
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const author = issue.user.login;
+
+            let welcomeMessage = `👋 **Welcome to SST Lounge Bot, @${author}!**\n\n`;
+
+            if (issue.title.includes('[BUG]')) {
+              welcomeMessage += `🐛 **Thanks for reporting this bug!** Our SST Batch '29 community appreciates your help in making the bot better.\n\n`;
+              welcomeMessage += `🔍 **What happens next:**\n`;
+              welcomeMessage += `- A maintainer will review your report\n`;
+              welcomeMessage += `- We may ask for additional information\n`;
+              welcomeMessage += `- Once confirmed, we'll work on fixing it\n\n`;
+              welcomeMessage += `💡 **In the meantime:** You can check our [troubleshooting guide](../README.md#troubleshooting) or ask for help in the SST Lounge Discord server.`;
+            } else if (issue.title.includes('[FEATURE]')) {
+              welcomeMessage += `💡 **Thanks for the feature suggestion!** We love hearing ideas from our batch on how to improve the bot.\n\n`;
+              welcomeMessage += `🔍 **What happens next:**\n`;
+              welcomeMessage += `- We'll evaluate how this fits with our batch's needs\n`;
+              welcomeMessage += `- The community can discuss and provide feedback\n`;
+              welcomeMessage += `- If approved, it'll be added to our development roadmap\n\n`;
+              welcomeMessage += `🤝 **Want to implement it yourself?** Check our [contributing guide](.github/CONTRIBUTING.md) for details on how to contribute code!`;
+            } else if (issue.title.includes('[QUESTION]')) {
+              welcomeMessage += `❓ **Thanks for your question!** The SST Batch '29 community is here to help.\n\n`;
+              welcomeMessage += `📚 **Quick resources:**\n`;
+              welcomeMessage += `- Check our [README](../README.md) for setup and usage info\n`;
+              welcomeMessage += `- Review [FEATURES.md](../FEATURES.md) for detailed feature docs\n`;
+              welcomeMessage += `- Use \`/help\` command in Discord for quick reference\n\n`;
+              welcomeMessage += `💬 **Community help:** Feel free to ask in the SST Lounge Discord server for faster responses!`;
+            } else {
+              welcomeMessage += `📝 **Thanks for your contribution!** Every issue helps make our bot better for SST Batch '29.\n\n`;
+              welcomeMessage += `🔍 A maintainer will review this soon and provide feedback.`;
+            }
+
+            welcomeMessage += `\n\n---\n🤖 *This is an automated welcome message. A human maintainer will respond soon!*`;
+
+            github.rest.issues.createComment({
+              issue_number: issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: welcomeMessage
+            });
+
+  label_management:
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = issue.body.toLowerCase();
+
+            let labels = [];
+
+            // Auto-label based on title
+            if (title.includes('[bug]')) {
+              labels.push('bug');
+            }
+            if (title.includes('[feature]')) {
+              labels.push('enhancement');
+            }
+            if (title.includes('[question]')) {
+              labels.push('question');
+            }
+
+            // Auto-label based on content
+            if (body.includes('contest') || body.includes('codeforces') || body.includes('codechef') || body.includes('atcoder') || body.includes('leetcode')) {
+              labels.push('contests');
+            }
+            if (body.includes('role') || body.includes('veteran') || body.includes('admin')) {
+              labels.push('roles');
+            }
+            if (body.includes('database') || body.includes('sqlite') || body.includes('sql')) {
+              labels.push('database');
+            }
+            if (body.includes('permission') || body.includes('admin') || body.includes('owner')) {
+              labels.push('permissions');
+            }
+            if (body.includes('documentation') || body.includes('readme') || body.includes('doc') || body.includes('docs') || body.includes('help')) {
+              labels.push('documentation');
+            }
+
+            // Priority labeling
+            if (body.includes('critical') || body.includes('urgent') || title.includes('critical')) {
+              labels.push('priority');
+            }
+
+            // Good first issue detection
+            if (body.includes('simple') || body.includes('easy') || body.includes('beginner') || title.includes('simple')) {
+              labels.push('good first issue');
+            }
+
+            if (labels.length > 0) {
+              github.rest.issues.addLabels({
+                issue_number: issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+            }

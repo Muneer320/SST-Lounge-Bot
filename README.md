@@ -144,10 +144,50 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - `/ping` - Check bot latency
 - `/hello` - Friendly greeting
 - `/help` - Show all commands
+- `/contribute` - Get information about contributing to the bot development
 
 ### Role Information Commands
 
 - `/veteran_info` - Show Discord Veteran role criteria and your qualification status
+
+## 🤝 Contributing
+
+We welcome contributions from the SST Batch '29 community! Whether you want to report bugs, suggest features, or contribute code, here's how you can help:
+
+### 🐛 Report Bugs
+
+- Use the `/contribute` command in Discord for quick access to our GitHub
+- Create an [issue](https://github.com/Muneer320/SST-Lounge-Bot/issues/new/choose) using our bug report template
+- Include:
+  - Clear description of the bug
+  - Steps to reproduce the issue
+  - Expected vs actual behavior
+  - Discord command that caused the issue
+
+### 💡 Suggest Features
+
+- Use `/contribute` command for guidelines
+- Create a [feature request](https://github.com/Muneer320/SST-Lounge-Bot/issues/new/choose) using our template
+- Include:
+  - Clear description of the feature
+  - How it would benefit the batch
+  - Any implementation ideas you have
+
+### 👨‍💻 Code Contributions
+
+1. Fork the repository: https://github.com/Muneer320/SST-Lounge-Bot
+2. Read our [Contributing Guide](.github/CONTRIBUTING.md) for detailed instructions
+3. Create a feature branch: `git checkout -b feature-name`
+4. Make your changes and test them
+5. Submit a pull request using our PR template
+
+### 📋 Areas We Need Help With
+
+- Contest platform integrations (HackerRank, TopCoder, etc.)
+- UI/UX improvements for embeds and responses
+- Additional utility commands for batch coordination
+- Documentation and help text improvements
+- Bug fixes and performance optimizations
 
 ## 🔐 Bot Administrator Privileges
 
@@ -236,4 +276,4 @@ logs/             # Bot operation logs
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.

@@ -109,6 +109,7 @@ logs/                   # Bot operation logs
   - `/ping` - Check bot latency and response time
   - `/hello` - Friendly greeting with bot introduction
   - `/help` - Comprehensive command listing and documentation
+  - `/contribute` - Get information about contributing to the bot development
 - **Usage**: General user commands accessible to all server members
 
 ## 🔧 Adding New Features

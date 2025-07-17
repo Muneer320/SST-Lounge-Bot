@@ -70,7 +70,8 @@ class UtilityCommands(commands.Cog):
             name="🔧 Utility Commands",
             value="• `/ping` - Check bot response time\n"
                   "• `/hello` - Say hello\n"
-                  "• `/help` - Show this help",
+                  "• `/help` - Show this help\n"
+                  "• `/contribute` - Contribute to the bot development",
             inline=False
         )
 
@@ -93,6 +94,51 @@ class UtilityCommands(commands.Cog):
         )
 
         embed.set_footer(text="SST Lounge Bot • All contest times in IST")
+        await interaction.response.send_message(embed=embed)
+
+    @app_commands.command(name="contribute", description="Get information about contributing to the bot")
+    async def contribute(self, interaction: discord.Interaction):
+        """Show contribution information and GitHub repository link."""
+        embed = discord.Embed(
+            title="🤝 Contribute to SST Lounge Bot",
+            description="Help make the bot better for our SST Batch '29 community!",
+            color=0x28a745
+        )
+
+        embed.add_field(
+            name="🐛 Found a Bug?",
+            value="• Report it on [GitHub Issues](https://github.com/Muneer320/SST-Lounge-Bot/issues/new/choose)\n"
+                  "• Use our bug report template\n"
+                  "• Include steps to reproduce and command used",
+            inline=False
+        )
+
+        embed.add_field(
+            name="💡 Have a Feature Idea?",
+            value="• Create a [Feature Request](https://github.com/Muneer320/SST-Lounge-Bot/issues/new/choose)\n"
+                  "• Use our feature request template\n"
+                  "• Explain how it would help our batch",
+            inline=False
+        )
+
+        embed.add_field(
+            name="👨‍💻 Want to Code?",
+            value="• Fork the [repository](https://github.com/Muneer320/SST-Lounge-Bot)\n"
+                  "• Check [CONTRIBUTING.md](https://github.com/Muneer320/SST-Lounge-Bot/blob/main/.github/CONTRIBUTING.md)\n"
+                  "• Submit a Pull Request with our template",
+            inline=False
+        )
+
+        embed.add_field(
+            name="🔗 Links",
+            value="**Repository:** https://github.com/Muneer320/SST-Lounge-Bot\n"
+                  "**Issues:** https://github.com/Muneer320/SST-Lounge-Bot/issues/new/choose\n"
+                  "**Contributing:** [CONTRIBUTING.md](https://github.com/Muneer320/SST-Lounge-Bot/blob/main/.github/CONTRIBUTING.md)",
+            inline=False
+        )
+
+        embed.set_footer(
+            text="Made by SST Batch '29 for SST Batch '29 • Open Source ❤️")
         await interaction.response.send_message(embed=embed)
 
 

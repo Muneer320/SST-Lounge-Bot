@@ -74,8 +74,10 @@ database/
 # Logs
 logs/
 *.log
-CHANGELOG.md
 
 # Bot specific
 config.json
 token.txt
+
+# Documentations
+*INTEGRATION.md

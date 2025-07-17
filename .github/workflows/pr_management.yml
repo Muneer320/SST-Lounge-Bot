@@ -1,0 +1,124 @@
+name: PR Management
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  welcome_pr:
+    if: github.event.action == 'opened'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome PR contributor
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+
+            const welcomeMessage = `🎉 **Thanks for contributing to SST Lounge Bot, @${author}!**
+
+            Your pull request has been received and will be reviewed by our maintainers. Here's what happens next:
+
+            🔍 **Review Process:**
+            - Automated checks will run to verify code quality
+            - A maintainer will review your changes
+            - We may request changes or ask questions
+            - Once approved, your contribution will be merged!
+
+            🤖 **Automated Checks:**
+            - [ ] Code syntax validation
+            - [ ] Documentation updates (if needed)
+            - [ ] No conflicts with main branch
+
+            💡 **While you wait:**
+            - Check that all automated checks pass
+            - Respond to any feedback from reviewers
+            - Feel free to ask questions in comments
+
+            🎭 **For SST Batch '29:**
+            Your contribution helps make our Discord bot better for the entire batch. Thank you for being part of our community!
+
+            ---
+            🤖 *This is an automated message. A human reviewer will provide detailed feedback soon!*`;
+
+            github.rest.issues.createComment({
+              issue_number: pr.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: welcomeMessage
+            });
+
+  code_quality_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.8"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile run.py
+          python -m py_compile core/*.py
+          python -m py_compile features/*/*.py
+
+      - name: Verify no syntax errors
+        run: |
+          echo "✅ All Python files compile successfully!"
+
+  auto_label_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Label PR based on changes
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const title = pr.title.toLowerCase();
+            const body = pr.body.toLowerCase();
+
+            let labels = [];
+
+            // Auto-label based on title and content
+            if (title.includes('bug') || title.includes('fix')) {
+              labels.push('bug fix');
+            }
+            if (title.includes('feature') || title.includes('add')) {
+              labels.push('enhancement');
+            }
+            if (title.includes('doc') || title.includes('readme')) {
+              labels.push('documentation');
+            }
+            if (title.includes('refactor') || title.includes('cleanup')) {
+              labels.push('refactoring');
+            }
+
+            // Feature-specific labels
+            if (body.includes('contest') || title.includes('contest')) {
+              labels.push('contests');
+            }
+            if (body.includes('role') || title.includes('role')) {
+              labels.push('roles');
+            }
+            if (body.includes('admin') || title.includes('admin')) {
+              labels.push('admin');
+            }
+            if (body.includes('database') || title.includes('database')) {
+              labels.push('database');
+            }
+
+            if (labels.length > 0) {
+              github.rest.issues.addLabels({
+                issue_number: pr.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+            }

@@ -107,6 +107,14 @@ class AdminCommands(commands.Cog):
                     inline=False
                 )
 
+        embed.add_field(
+            name="🔗 Links",
+            value="• **GitHub**: https://github.com/Muneer320/SST-Lounge-Bot\n"
+                  "• **Contribute**: Use `/contribute` command\n"
+                  "• **Support**: SST Batch '29 Discord Server",
+            inline=False
+        )
+
         embed.set_footer(
             text=f"Made for SST Batch '29 • Bot ID: {self.bot.user.id}")
         await interaction.response.send_message(embed=embed)
