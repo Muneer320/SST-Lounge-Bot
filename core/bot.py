@@ -6,7 +6,9 @@ Simple and focused Discord bot for SST Batch '29.
 import discord
 from discord.ext import commands
 import logging
+import os
 from core.database import SimpleDB
+from core.updater import GitUpdater
 
 
 class SSTLoungeBot(commands.Bot):
@@ -26,6 +28,10 @@ class SSTLoungeBot(commands.Bot):
 
         # Initialize database
         self.db = SimpleDB()
+
+        # Initialize git updater
+        update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '300'))  # Default: check every 5 minutes
+        self.updater = GitUpdater(self, check_interval=update_interval)
 
         # Ensure logs directory exists
         from pathlib import Path
@@ -51,6 +57,13 @@ class SSTLoungeBot(commands.Bot):
         await self.load_features()
 
         self.logger.info("Bot setup completed")
+
+        # Start update checker if enabled
+        if os.getenv('ENABLE_AUTO_UPDATES', 'true').lower() == 'true':
+            self.logger.info("Starting auto-update checker")
+            self.loop.create_task(self.updater.start_update_checker())
+        else:
+            self.logger.info("Auto-updates disabled")
 
     async def load_features(self):
         """Load all feature modules."""
@@ -97,6 +110,10 @@ class SSTLoungeBot(commands.Bot):
 
     async def close(self):
         """Called when bot is shutting down."""
+        # Stop update checker
+        if hasattr(self, 'updater'):
+            self.updater.stop()
+            
         await self.db.close()
         await super().close()
         self.logger.info("Bot shutdown completed")

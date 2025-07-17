@@ -22,7 +22,19 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - **Manual Role Check**: Admin command to manually trigger veteran role assignment
 - **Smart Role Creation**: Automatically creates the role if it doesn't exist
 
-### �️ Bot Admin System
+### 🔄 Auto-Update System
+
+- **GitHub Integration**: Automatically checks for updates from a configurable GitHub repository
+- **Smart Pulling**: Pulls latest commits and restarts the bot when updates are available
+- **Configurable URL**: Set any GitHub repository URL to pull updates from
+- **Branch Selection**: Specify which branch to track (or use the default branch)
+- **Adjustable Frequency**: Configure how often the bot checks for updates
+- **Toggle Control**: Easily enable or disable auto-updates via environment variables
+- **Version Tracking**: Uses semantic versioning to detect new releases
+- **Admin Notifications**: Automatically notifies administrators about available updates
+- **Manual Updates**: `/update` command allows triggering updates on demand with confirmation
+
+###️ Bot Admin System
 
 - **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
 - **Bot-Level Privileges**: Custom admin system that doesn't affect Discord server permissions
@@ -49,7 +61,8 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 ```text
 ├── core/                    # Bot core and database
 │   ├── bot.py              # Main bot class
-│   └── database.py         # SQLite database operations
+│   ├── database.py         # SQLite database operations
+│   └── updater.py          # Auto-update functionality
 ├── features/               # Modular features
 │   ├── admin/              # Admin commands and role management
 │   ├── contests/           # Contest system with caching
@@ -85,6 +98,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
    ```bash
    copy .env.example .env
    # Edit .env with your bot token and API credentials
+   # Configure auto-update settings (repository URL, branch, interval)
    ```
 
 3. **Bot Permissions Setup**
@@ -133,6 +147,7 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - `/info` - Show bot statistics and server information
 - `/sync` - Sync slash commands with Discord
 - `/list_admins` - List all bot admins (shows grant history)
+- `/update` - Update the bot to the latest version from GitHub
 
 ### Owner Commands (Server Owner Only)
 

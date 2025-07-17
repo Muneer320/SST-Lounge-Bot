@@ -10,6 +10,7 @@ The SST Lounge Bot uses a clean, modular architecture where each feature is self
 core/
 ├── bot.py              # Main bot class and initialization
 ├── database.py         # SQLite operations and caching
+├── updater.py          # Auto-update functionality
 └── config.py           # Configuration management
 
 features/
@@ -27,6 +28,19 @@ logs/                   # Bot operation logs
 ```
 
 ## 🚀 Features Overview
+
+### Auto-Update System (`core/updater.py`)
+
+- **Purpose**: Automatically update bot from GitHub repository without manual intervention
+- **Features**:
+  - **GitHub Integration**: Checks for updates from configurable GitHub repository
+  - **Configurable Repository**: Supports custom repository URL through environment variables
+  - **Branch Selection**: Track default or custom branch based on configuration
+  - **Automatic Restart**: Bot restarts itself after pulling latest changes
+  - **Configurable Interval**: Adjust how frequently the bot checks for updates
+  - **Toggle Control**: Enable/disable auto-updates through environment variables
+  - **Non-blocking Operations**: Uses async functions to avoid blocking bot operations
+  - **Comprehensive Logging**: Detailed logs for update checks, pulls, and restarts
 
 ### Contest System (`features/contests/contests.py`)
 
