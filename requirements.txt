@@ -1,6 +1,6 @@
-aiohttp==3.12.14
-aiosqlite==0.21.0
-discord.py==2.5.2
-pytest==8.3.5
-python-dotenv==1.1.1
-pytz==2024.2
+aiohttp>=3.12.14
+aiosqlite>=0.21.0
+discord.py>=2.5.2
+pytest>=8.3.5
+python-dotenv>=1.1.1
+pytz>=2024.2
