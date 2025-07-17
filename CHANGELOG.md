@@ -2,6 +2,61 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
+## [1.3.0] - 2024-12-30
+
+### Added
+
+- **Manual Update Command**: New `/update` command to manually trigger bot updates
+- **Version Tracking**: Added version.json file to track version information
+- **Admin Notifications**: Automatic notifications for administrators when updates are available
+- **Interactive Updates**: Confirmation dialog with interactive buttons for update process
+- **Semantic Versioning**: Smart version comparison to detect new releases
+- **Update Details**: Display update information including version number and description
+
+### Changed
+
+- **Auto-Update System**: Enhanced to check both version.json and git commits for updates
+- **Updater Class**: Redesigned GitUpdater to support both automatic and manual updates
+- **Admin Permissions**: Update command requires bot admin privileges
+- **Documentation**: Updated requirements to include necessary dependencies
+- **Error Handling**: Improved error handling and user feedback during update process
+
+### Technical Improvements
+
+- **Version Comparison**: Semantic versioning with proper comparison of version components
+- **Remote Version Detection**: Direct checks of version.json in GitHub repository
+- **UI Components**: Interactive confirmation buttons for update command
+- **Notification System**: Direct messages to bot administrators for update notifications
+- **Process Management**: Improved restart handling after updates
+
+## [1.2.0] - 2024-12-28
+
+### Added
+
+- **Auto-Update System**: Automatic GitHub repository checking and bot updates
+- **Configurable Repository**: Support for custom GitHub URLs and branch selection
+- **Smart Restart**: Bot automatically restarts after pulling latest changes
+- **Environment Variables**: New environment variables for controlling auto-update behavior
+  - `ENABLE_AUTO_UPDATES`: Enable/disable auto-update system (default: true)
+  - `GITHUB_REPO_URL`: Set custom repository URL
+  - `GITHUB_REPO_BRANCH`: Specify branch to track (empty for default branch)
+  - `UPDATE_CHECK_INTERVAL`: Configure check frequency in seconds (default: 300)
+- **Logging**: Detailed update checking and pull logging
+
+### Changed
+
+- **Bot Core**: Updated to support auto-update functionality
+- **Startup Sequence**: Added update checker initialization
+- **Documentation**: Updated README.md to include auto-update feature details
+- **Environment Example**: Updated .env.example with auto-update configuration options
+
+### Technical Improvements
+
+- **GitUpdater Class**: New class for handling GitHub repository checks
+- **Async Git Operations**: Non-blocking git fetch and pull operations
+- **Process Management**: Clean bot restart after updates
+- **Error Handling**: Graceful handling of git operation failures
+
 ## [1.1.0] - 2024-12-19
 
 ### Added
