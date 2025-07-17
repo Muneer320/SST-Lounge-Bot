@@ -271,12 +271,11 @@ class GitUpdater:
         try:
             # Send initial update message if interaction is provided
             if interaction:
-                await interaction.response.send_message("🔄 Updating bot...", ephemeral=True)
+                # Don't send a response here - the button already responded
+                # Just use followup messages from here on
+                await interaction.followup.send("🔄 Pulling latest changes from GitHub...", ephemeral=True)
                 
             # Pull changes
-            if interaction:
-                await interaction.edit_original_response(content="🔄 Pulling latest changes from GitHub...")
-                
             pull_process = await asyncio.create_subprocess_exec(
                 'git', 'pull', 'origin', *self.branch_args,
                 stdout=asyncio.subprocess.PIPE,
@@ -288,7 +287,7 @@ class GitUpdater:
                 error_msg = f"Failed to pull changes: {stderr.decode()}"
                 logger.error(error_msg)
                 if interaction:
-                    await interaction.edit_original_response(content=f"❌ {error_msg}")
+                    await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
                 return False
             
             pull_output = stdout.decode()
@@ -302,8 +301,9 @@ class GitUpdater:
             
             # Notify about successful pull
             if interaction:
-                await interaction.edit_original_response(
-                    content=f"✅ Changes pulled successfully!\n```\n{pull_output[:1500]}\n```\n🔄 Restarting bot..."
+                await interaction.followup.send(
+                    f"✅ Changes pulled successfully!\n```\n{pull_output[:1500]}\n```\n🔄 Restarting bot...",
+                    ephemeral=True
                 )
             
             # Restart the bot
@@ -326,7 +326,10 @@ class GitUpdater:
             error_msg = f"Error during update: {e}"
             logger.error(error_msg)
             if interaction:
-                await interaction.edit_original_response(content=f"❌ {error_msg}")
+                try:
+                    await interaction.followup.send(f"❌ {error_msg}", ephemeral=True)
+                except Exception as follow_error:
+                    logger.error(f"Failed to send error message: {follow_error}")
             return False
 
     async def update_and_restart(self):
