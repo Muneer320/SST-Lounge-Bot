@@ -1,0 +1,75 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, "3.10", "3.11"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          # Stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.git,__pycache__,venv,env
+
+      - name: Test Python syntax
+        run: |
+          echo "Testing Python syntax..."
+          python -m py_compile run.py
+          find core -name "*.py" -exec python -m py_compile {} \;
+          find features -name "*.py" -exec python -m py_compile {} \;
+          echo "✅ All Python files have valid syntax!"
+
+      - name: Test imports
+        run: |
+          echo "Testing imports..."
+          python -c "
+          import sys
+          import os
+          sys.path.insert(0, '.')
+          try:
+              from core import SSTLoungeBot, SimpleDB
+              print('✅ Core imports successful')
+          except ImportError as e:
+              print(f'❌ Core import failed: {e}')
+              sys.exit(1)
+          "
+
+      - name: Check environment file
+        run: |
+          if [ ! -f .env.example ]; then
+            echo "❌ .env.example file missing"
+            exit 1
+          fi
+          echo "✅ .env.example file exists"
+
+      - name: Validate directory structure
+        run: |
+          required_dirs=("core" "features" "features/admin" "features/contests" "features/roles" "features/utilities" ".github")
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Required directory missing: $dir"
+              exit 1
+            fi
+          done
+          echo "✅ All required directories exist"
