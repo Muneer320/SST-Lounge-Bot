@@ -106,6 +106,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Owner Control**: Only server owners can grant/revoke bot admin privileges
 - **Audit Trail**: All bot admin grants tracked with timestamps and granter information
 
+
 ## [1.0.0] - 2025-07-16
 
 ### Initial Release
