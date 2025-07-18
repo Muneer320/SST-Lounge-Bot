@@ -11,7 +11,18 @@ from typing import Optional
 
 
 def is_admin(interaction: discord.Interaction) -> bool:
-    """Check if user has admin privileges (server owner, Discord admin, or bot admin)."""
+    """
+    Check if user has admin privileges (server owner, Discord admin, or bot admin).
+
+    This function performs quick synchronous checks only. For bot admin privileges,
+    use is_bot_admin() which performs async database queries.
+
+    Args:
+        interaction: Discord interaction object
+
+    Returns:
+        bool: True if user has server owner or Discord admin privileges
+    """
     if not interaction.guild:
         return False
 
@@ -27,7 +38,6 @@ def is_admin(interaction: discord.Interaction) -> bool:
         logging.info(f"User {interaction.user} has administrator permission")
         return True
 
-    # Note: Bot admin check will be done asynchronously in commands
     logging.info(f"User {interaction.user} requires bot admin check")
     return False
 
@@ -407,69 +417,78 @@ class AdminCommands(commands.Cog):
         try:
             # Check if update is available
             update_available, version_info = await self.bot.updater.check_for_updates()
-            
+
             if not update_available:
                 await interaction.response.send_message("✅ Bot is already at the latest version.", ephemeral=True)
                 return
-            
+
             # Get version info
-            current_version = self.bot.updater.current_version.get('version', 'unknown')
-            new_version = version_info.get('version', 'unknown') if version_info else 'unknown'
-            description = version_info.get('description', 'No description available') if version_info else 'No description available'
-            
+            current_version = self.bot.updater.current_version.get(
+                'version', 'unknown')
+            new_version = version_info.get(
+                'version', 'unknown') if version_info else 'unknown'
+            description = version_info.get(
+                'description', 'No description available') if version_info else 'No description available'
+
             # Confirm the update
             embed = discord.Embed(
                 title="🔄 Update Available",
                 description=f"Are you sure you want to update the bot from v{current_version} to v{new_version}?",
                 color=0x3498db
             )
-            embed.add_field(name="Description", value=description, inline=False)
-            embed.add_field(name="Warning", value="Bot will restart during the update process.", inline=False)
-            
+            embed.add_field(name="Description",
+                            value=description, inline=False)
+            embed.add_field(
+                name="Warning", value="Bot will restart during the update process.", inline=False)
+
             # Create confirmation buttons
             class ConfirmView(discord.ui.View):
                 def __init__(self, *, timeout=180, bot=None):
                     super().__init__(timeout=timeout)
                     self.bot = bot
-                
+
                 @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
                 async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                     if button_interaction.user.id != interaction.user.id:
                         await button_interaction.response.send_message("❌ Only the command user can confirm.", ephemeral=True)
                         return
-                    
+
                     # Create a new view with disabled buttons
                     disabled_view = discord.ui.View()
-                    disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
-                    disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
-                    
+                    disabled_view.add_item(discord.ui.Button(
+                        label="Update Now", style=discord.ButtonStyle.green, disabled=True))
+                    disabled_view.add_item(discord.ui.Button(
+                        label="Cancel", style=discord.ButtonStyle.red, disabled=True))
+
                     # Mark the buttons as disabled and defer the response
                     # This consumes the interaction response but doesn't send a message
                     await button_interaction.response.edit_message(content="🔄 Starting update process...", view=disabled_view)
-                    
+
                     # Start update
                     if self.bot is not None:
                         await self.bot.updater.update(button_interaction)
                     else:
                         await button_interaction.followup.send("Bot reference is missing. Update failed.", ephemeral=True)
-                
+
                 @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
                 async def cancel_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                     if button_interaction.user.id != interaction.user.id:
                         await button_interaction.response.send_message("❌ Only the command user can cancel.", ephemeral=True)
                         return
-                    
+
                     # Create a new view with disabled buttons
                     disabled_view = discord.ui.View()
-                    disabled_view.add_item(discord.ui.Button(label="Update Now", style=discord.ButtonStyle.green, disabled=True))
-                    disabled_view.add_item(discord.ui.Button(label="Cancel", style=discord.ButtonStyle.red, disabled=True))
-                    
+                    disabled_view.add_item(discord.ui.Button(
+                        label="Update Now", style=discord.ButtonStyle.green, disabled=True))
+                    disabled_view.add_item(discord.ui.Button(
+                        label="Cancel", style=discord.ButtonStyle.red, disabled=True))
+
                     await button_interaction.response.edit_message(content="Update cancelled.", embed=None, view=disabled_view)
-            
+
             # Send confirmation message with buttons
             view = ConfirmView(bot=self.bot)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-            
+
         except Exception as e:
             logging.error(f"Error in update command: {e}")
             await interaction.response.send_message(f"❌ Error checking for updates: {str(e)}", ephemeral=True)

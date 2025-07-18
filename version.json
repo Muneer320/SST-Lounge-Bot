@@ -1,9 +1,9 @@
 {
-    "version": "1.4.1",
-    "date": "2024-12-30",
-    "name": "SST Lounge Bot",
-    "description": "Test for auto updater",
-    "branch": "main",
-    "author": "SST Team",
-    "repository": "https://github.com/Muneer320/SST-Lounge-Bot"
-} 
+  "version": "1.4.0",
+  "date": "2025-07-18",
+  "name": "SST Lounge Bot",
+  "description": "Complete codebase cleanup and documentation updates",
+  "branch": "main",
+  "author": "SST Team",
+  "repository": "https://github.com/Muneer320/SST-Lounge-Bot"
+}

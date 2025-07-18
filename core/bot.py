@@ -21,7 +21,7 @@ class SSTLoungeBot(commands.Bot):
         intents.members = True  # Required for member join events and fetching member list
 
         super().__init__(
-            command_prefix='!',  # Prefix won't be used since we only use slash commands
+            command_prefix='!',
             intents=intents,
             case_insensitive=True
         )
@@ -30,7 +30,7 @@ class SSTLoungeBot(commands.Bot):
         self.db = SimpleDB()
 
         # Initialize git updater
-        update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '300'))  # Default: check every 5 minutes
+        update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '300'))
         self.updater = GitUpdater(self, check_interval=update_interval)
 
         # Ensure logs directory exists
@@ -113,7 +113,7 @@ class SSTLoungeBot(commands.Bot):
         # Stop update checker
         if hasattr(self, 'updater'):
             self.updater.stop()
-            
+
         await self.db.close()
         await super().close()
         self.logger.info("Bot shutdown completed")

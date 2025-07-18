@@ -2,7 +2,24 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
-## [1.3.0] - 2024-12-30
+## [1.4.0] - 2025-07-18
+
+### Changed
+
+- **Codebase Cleanup**: Complete code cleanup with improved documentation and comments
+- **Version Management**: Updated version numbers across all files for consistency
+- **Documentation Updates**: Refreshed all markdown files with current information
+- **Code Quality**: Removed unnecessary comments and improved code organization
+- **File Cleanup**: Removed temporary files and improved repository structure
+
+### Technical Improvements
+
+- **Consistent Versioning**: Aligned version numbers in all configuration files
+- **Enhanced Documentation**: Improved function docstrings and inline comments
+- **Code Organization**: Better separation of concerns and cleaner file structure
+- **Repository Hygiene**: Cleaned up unnecessary files and improved .gitignore coverage
+
+## [1.3.0] - 2025-07-18
 
 ### Added
 
@@ -29,7 +46,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Notification System**: Direct messages to bot administrators for update notifications
 - **Process Management**: Improved restart handling after updates
 
-## [1.2.0] - 2024-12-28
+## [1.2.0] - 2025-07-17
 
 ### Added
 
@@ -57,7 +74,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Process Management**: Clean bot restart after updates
 - **Error Handling**: Graceful handling of git operation failures
 
-## [1.1.0] - 2024-12-19
+## [1.1.0] - 2025-07-17
 
 ### Added
 
@@ -89,7 +106,7 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Owner Control**: Only server owners can grant/revoke bot admin privileges
 - **Audit Trail**: All bot admin grants tracked with timestamps and granter information
 
-## [1.0.0] - 2024-12-18
+## [1.0.0] - 2025-07-16
 
 ### Initial Release
 
