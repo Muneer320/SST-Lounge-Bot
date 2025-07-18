@@ -7,7 +7,26 @@ import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
-from typing import Optional
+from typing import Optional, List
+import asyncio
+from datetime import datetime, timedelta
+
+
+# Autocomplete function for schedule parameter
+async def schedule_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
+    now = datetime.now()
+    options = [
+        ("Now", "now"),
+        ("In 1 hour", (now + timedelta(hours=1)).strftime("%H:%M")),
+        ("Tonight", "23:00"),
+        ("Midnight", "00:00"),
+        ("Tomorrow morning", "08:00"),
+    ]
+    
+    return [
+        app_commands.Choice(name=label, value=value)
+        for label, value in options if current.lower() in label.lower() or current.lower() in value.lower()
+    ]
 
 
 def is_admin(interaction: discord.Interaction) -> bool:
@@ -405,14 +424,18 @@ class AdminCommands(commands.Cog):
             await interaction.response.send_message(f"❌ Failed to list bot admins: {str(e)}", ephemeral=True)
 
     @app_commands.command(name='update', description='Update the bot to the latest version')
-    async def update_bot(self, interaction: discord.Interaction):
+    @app_commands.describe(
+        schedule='Schedule the update for a specific time (default: now)'
+    )
+    @app_commands.autocomplete(schedule=schedule_autocomplete)
+    async def update_bot(self, interaction: discord.Interaction, schedule: Optional[str] = "now"):
         """Update the bot to the latest version from GitHub."""
         # Check if user has bot admin privileges
         if not await is_bot_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
 
-        logging.info(f"Update command used by {interaction.user}")
+        logging.info(f"Update command used by {interaction.user} with schedule: {schedule}")
 
         try:
             # Check if update is available
@@ -433,7 +456,7 @@ class AdminCommands(commands.Cog):
             # Confirm the update
             embed = discord.Embed(
                 title="🔄 Update Available",
-                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version}?",
+                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version} {schedule_text}?",
                 color=0x3498db
             )
             embed.add_field(name="Description",
@@ -443,10 +466,11 @@ class AdminCommands(commands.Cog):
 
             # Create confirmation buttons
             class ConfirmView(discord.ui.View):
-                def __init__(self, *, timeout=180, bot=None):
+                def __init__(self, *, timeout=180, bot=None, scheduled_time=None):
                     super().__init__(timeout=timeout)
                     self.bot = bot
 
+                    
                 @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
                 async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                     if button_interaction.user.id != interaction.user.id:
@@ -486,7 +510,7 @@ class AdminCommands(commands.Cog):
                     await button_interaction.response.edit_message(content="Update cancelled.", embed=None, view=disabled_view)
 
             # Send confirmation message with buttons
-            view = ConfirmView(bot=self.bot)
+            view = ConfirmView(bot=self.bot, scheduled_time=scheduled_time)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
