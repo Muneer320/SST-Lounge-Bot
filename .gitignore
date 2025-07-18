@@ -79,6 +79,12 @@ logs/
 config.json
 token.txt
 
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.old
+
 # Documentations
 *INTEGRATION.md
 *.service

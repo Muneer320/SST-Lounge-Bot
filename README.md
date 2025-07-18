@@ -25,14 +25,12 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 ### 🔄 Auto-Update System
 
 - **GitHub Integration**: Automatically checks for updates from a configurable GitHub repository
-- **Smart Pulling**: Pulls latest commits and restarts the bot when updates are available
-- **Configurable URL**: Set any GitHub repository URL to pull updates from
-- **Branch Selection**: Specify which branch to track (or use the default branch)
-- **Adjustable Frequency**: Configure how often the bot checks for updates
-- **Toggle Control**: Easily enable or disable auto-updates via environment variables
-- **Version Tracking**: Uses semantic versioning to detect new releases
-- **Admin Notifications**: Automatically notifies administrators about available updates
+- **Smart Detection**: Uses semantic versioning and git commit comparison for update detection
+- **Configurable Settings**: Set custom repository URL, branch, and check intervals
+- **Admin Notifications**: Automatically notifies bot administrators about available updates
 - **Manual Updates**: `/update` command allows triggering updates on demand with confirmation
+- **Safe Restart**: Automatic bot restart after successful updates
+- **Toggle Control**: Easily enable or disable auto-updates via environment variables
 
 ###️ Bot Admin System
 
@@ -124,9 +122,9 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 
 - `/contests [days:1-30] [platform] [limit:1-30]` - Get upcoming contests with filters
 
-  - **days**: Number of days to look ahead (1-30, default: 7)
+  - **days**: Number of days to look ahead (1-30, default: 3)
   - **platform**: Filter by platform (codeforces, codechef, atcoder, leetcode)
-  - **limit**: Maximum number of results (1-30, default: 10)
+  - **limit**: Maximum number of results (1-20, default: all)
 
 - `/contests_today [platform] [limit:1-10]` - Today's contests with real-time status
 

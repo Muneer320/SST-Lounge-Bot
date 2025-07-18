@@ -3,13 +3,18 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review]
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
 jobs:
   welcome_pr:
     if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
       - name: Welcome PR contributor
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
@@ -41,33 +46,39 @@ jobs:
             ---
             🤖 *This is an automated message. A human reviewer will provide detailed feedback soon!*`;
 
-            github.rest.issues.createComment({
-              issue_number: pr.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: welcomeMessage
-            });
+            try {
+              await github.rest.issues.createComment({
+                issue_number: pr.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: welcomeMessage
+              });
+              console.log(`Welcome message posted for PR #${pr.number}`);
+            } catch (error) {
+              console.log(`Failed to post welcome message: ${error.message}`);
+              // Don't fail the entire workflow if comment posting fails
+            }
 
   code_quality_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.8"
+          python-version: "3.9"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Check Python syntax
         run: |
           python -m py_compile run.py
-          python -m py_compile core/*.py
-          python -m py_compile features/*/*.py
+          find core -name "*.py" -exec python -m py_compile {} \;
+          find features -name "*.py" -exec python -m py_compile {} \;
 
       - name: Verify no syntax errors
         run: |
@@ -77,12 +88,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Label PR based on changes
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           script: |
             const pr = context.payload.pull_request;
             const title = pr.title.toLowerCase();
-            const body = pr.body.toLowerCase();
+            const body = (pr.body || '').toLowerCase();
 
             let labels = [];
 
@@ -113,12 +124,22 @@ jobs:
             if (body.includes('database') || title.includes('database')) {
               labels.push('database');
             }
+            if (body.includes('update') || title.includes('update')) {
+              labels.push('auto-update');
+            }
 
             if (labels.length > 0) {
-              github.rest.issues.addLabels({
-                issue_number: pr.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                labels: labels
-              });
+              try {
+                await github.rest.issues.addLabels({
+                  issue_number: pr.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  labels: labels
+                });
+                console.log(`Added labels: ${labels.join(', ')}`);
+              } catch (error) {
+                console.log(`Failed to add labels: ${error.message}`);
+              }
+            } else {
+              console.log('No labels to add based on PR title and content');
             }

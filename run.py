@@ -13,25 +13,23 @@ sys.path.insert(0, str(project_root))
 
 
 def main():
-    """Main entry point."""
-    print("🤖 Starting SST Lounge Discord Bot...")
-    print("=" * 50)
+    """Main entry point for SST Lounge Discord Bot."""
+    print("🤖 Starting SST Lounge Discord Bot...\n" + "=" * 50)
 
     # Check if .env file exists
     env_file = project_root / ".env"
     if not env_file.exists():
-        print("❌ .env file not found!")
-        print("Please copy .env.example to .env and configure your bot token.")
-        print("\nSteps:")
-        print("1. Copy .env.example to .env")
-        print("2. Add your Discord bot token to DISCORD_BOT_TOKEN")
-        print("3. Optionally add clist.by API credentials")
+        print("❌ .env file not found!\n"
+              "Please copy .env.example to .env and configure your bot token.\n\n"
+              "Steps:\n"
+              "1. Copy .env.example to .env\n"
+              "2. Add your Discord bot token to DISCORD_BOT_TOKEN\n"
+              "3. Optionally add clist.by API credentials")
         sys.exit(1)
 
     # Check Python version
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8+ is required!")
-        print(f"Current version: {sys.version}")
+        print(f"❌ Python 3.8+ is required!\nCurrent version: {sys.version}")
         sys.exit(1)
 
     try:
@@ -65,9 +63,9 @@ def main():
         asyncio.run(run_bot())
 
     except ImportError as e:
-        print(f"❌ Missing dependencies: {e}")
-        print("\nPlease install dependencies:")
-        print("pip install -r requirements.txt")
+        print(f"❌ Missing dependencies: {e}\n\n"
+              "Please install dependencies:\n"
+              "pip install -r requirements.txt")
         sys.exit(1)
     except KeyboardInterrupt:
         print("\n👋 Bot stopped by user")

@@ -31,16 +31,22 @@ logs/                   # Bot operation logs
 
 ### Auto-Update System (`core/updater.py`)
 
-- **Purpose**: Automatically update bot from GitHub repository without manual intervention
+- **Purpose**: Automatically update bot from GitHub repository with version tracking and admin notifications
 - **Features**:
+  - **Dual Update Detection**: Checks both version.json files and git commits for comprehensive update detection
+  - **Version Tracking**: Semantic versioning with proper comparison of version components
+  - **Manual Updates**: `/update` command allows triggering updates on demand with interactive confirmation
+  - **Admin Notifications**: Automatically notifies bot administrators about available updates via DM
   - **GitHub Integration**: Checks for updates from configurable GitHub repository
-  - **Configurable Repository**: Supports custom repository URL through environment variables
-  - **Branch Selection**: Track default or custom branch based on configuration
+  - **Configurable Repository**: Supports custom repository URL and branch through environment variables
+  - **Interactive UI**: Confirmation dialogs with interactive buttons for update process
   - **Automatic Restart**: Bot restarts itself after pulling latest changes
-  - **Configurable Interval**: Adjust how frequently the bot checks for updates
+  - **Configurable Interval**: Adjust how frequently the bot checks for updates (default: 600 seconds)
   - **Toggle Control**: Enable/disable auto-updates through environment variables
+  - **Smart Comparison**: Compares local and remote version.json files for accurate update detection
+  - **Safe Updates**: Error handling and rollback capabilities for failed updates
   - **Non-blocking Operations**: Uses async functions to avoid blocking bot operations
-  - **Comprehensive Logging**: Detailed logs for update checks, pulls, and restarts
+  - **Comprehensive Logging**: Detailed logs for update checks, pulls, restarts, and notifications
 
 ### Contest System (`features/contests/contests.py`)
 
@@ -53,25 +59,6 @@ logs/                   # Bot operation logs
   - `/refresh_contests` - Manual cache refresh (Admin only)
   - `/contest_setup [channel]` - Set announcement channel (Admin only)
   - `/contest_time [time]` - Configure daily announcement time (Admin only)
-
-### Admin System (`features/admin/admin.py`)
-
-- **Purpose**: Bot administration and permission management
-- **Commands**:
-
-  - `/info` - Show bot statistics and information
-  - `/sync` - Sync slash commands with Discord (Bot Admin)
-  - `/grant_admin [user] or [role]` - Grant bot admin privileges (Owner only)
-  - `/revoke_admin [user] or [role]` - Revoke bot admin privileges (Owner only)
-  - `/list_admins` - List all bot admins with grant history (Bot Admin)
-
-- **Advanced Features**:
-
-  - **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
-  - **Bot-Level Privileges**: Custom admin system separate from Discord server permissions
-  - **User and Role Support**: Grant privileges to individuals or entire roles
-  - **Transparent Management**: Track who granted admin privileges and when
-  - **Database Integration**: Persistent bot admin storage with SQLite
 
 - **Advanced Features**:
   - **Smart Caching**: 30-day contest data cached locally, daily refresh at 00:00 IST
@@ -89,6 +76,7 @@ logs/                   # Bot operation logs
 
   - `/info` - Show bot statistics and information
   - `/sync` - Sync slash commands with Discord (Bot Admin)
+  - `/update` - Manually trigger bot updates from GitHub with confirmation (Bot Admin)
   - `/grant_admin [user] or [role]` - Grant bot admin privileges (Owner only)
   - `/revoke_admin [user] or [role]` - Revoke bot admin privileges (Owner only)
   - `/list_admins` - List all bot admins with grant history (Bot Admin)
@@ -99,6 +87,7 @@ logs/                   # Bot operation logs
   - **User and Role Support**: Grant privileges to individuals or entire roles
   - **Transparent Management**: Track who granted admin privileges and when
   - **Database Integration**: Persistent bot admin storage with SQLite
+  - **Update Management**: Manual update triggering with interactive confirmation dialogs
 
 ### Role Management System (`features/roles/roles.py`)
 

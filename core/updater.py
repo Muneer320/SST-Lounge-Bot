@@ -66,7 +66,7 @@ class GitUpdater:
                 logger.warning("version.json not found, using default version info")
                 return {
                     "version": "1.0.0",
-                    "date": "2024-01-01",
+                    "date": "2025-07-16",
                     "name": "SST Lounge Bot",
                     "branch": "main"
                 }
@@ -74,7 +74,7 @@ class GitUpdater:
             logger.error(f"Error loading version info: {e}")
             return {
                 "version": "1.0.0",
-                "date": "2024-01-01",
+                "date": "2025-07-16",
                 "name": "SST Lounge Bot",
                 "branch": "main"
             }
@@ -316,9 +316,6 @@ class GitUpdater:
             
             # Restart the bot
             logger.info("Restarting bot...")
-            
-            # Get the path of the current script
-            script_path = Path(sys.argv[0])
             
             # Build the restart command
             restart_command = [sys.executable] + sys.argv
