@@ -10,6 +10,11 @@ from discord import app_commands
 from typing import Optional, List
 import asyncio
 from datetime import datetime, timedelta
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from utils.version import get_bot_name, get_bot_version, get_bot_description
+from utils.interaction_helpers import safe_response
 
 
 # Autocomplete function for schedule parameter
@@ -47,17 +52,17 @@ def is_admin(interaction: discord.Interaction) -> bool:
 
     # Server owner always has admin privileges
     if interaction.user.id == interaction.guild.owner_id:
-        logging.info(
+        logging.debug(
             f"User {interaction.user} is server owner - granting admin access")
         return True
 
     # Check if user is a member and has administrator permission
     member = interaction.guild.get_member(interaction.user.id)
     if member and member.guild_permissions.administrator:
-        logging.info(f"User {interaction.user} has administrator permission")
+        logging.debug(f"User {interaction.user} has administrator permission")
         return True
 
-    logging.info(f"User {interaction.user} requires bot admin check")
+    logging.debug(f"User {interaction.user} requires bot admin check")
     return False
 
 
@@ -101,8 +106,8 @@ class AdminCommands(commands.Cog):
             f"Info command used by {interaction.user} in {interaction.guild}")
 
         embed = discord.Embed(
-            title="🤖 SST Lounge Bot Info",
-            description="Bot statistics and information",
+            title=f"🤖 {get_bot_name()} Info",
+            description=get_bot_description(),
             color=0x3498db
         )
 
@@ -116,7 +121,8 @@ class AdminCommands(commands.Cog):
 
         embed.add_field(
             name="🔧 Technical",
-            value=f"**Discord.py:** {discord.__version__}\n"
+            value=f"**Bot Version:** {get_bot_version()}\n"
+            f"**Discord.py:** {discord.__version__}\n"
             f"**Features:** {len(self.bot.cogs)}\n"
             f"**Commands:** Slash only",
             inline=True
@@ -265,7 +271,7 @@ class AdminCommands(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error granting bot admin privileges: {e}")
-            await interaction.response.send_message(f"❌ Failed to grant bot admin privileges: {str(e)}", ephemeral=True)
+            await safe_response(interaction, f"❌ Failed to grant bot admin privileges: {str(e)}", ephemeral=True)
 
     @app_commands.command(name='revoke_admin', description='Revoke bot admin privileges from a user or role')
     @app_commands.describe(
@@ -339,7 +345,7 @@ class AdminCommands(commands.Cog):
 
         except Exception as e:
             logging.error(f"Error revoking bot admin privileges: {e}")
-            await interaction.response.send_message(f"❌ Failed to revoke bot admin privileges: {str(e)}", ephemeral=True)
+            await safe_response(interaction, f"❌ Failed to revoke bot admin privileges: {str(e)}", ephemeral=True)
 
     @app_commands.command(name='list_admins', description='List all bot admin users and roles')
     async def list_admins(self, interaction: discord.Interaction):
@@ -453,6 +459,14 @@ class AdminCommands(commands.Cog):
             description = version_info.get(
                 'description', 'No description available') if version_info else 'No description available'
 
+            # Parse schedule
+            scheduled_time = None
+            if schedule == "now":
+                schedule_text = "immediately"
+            else:
+                # For future enhancement - parse schedule string
+                schedule_text = "immediately"
+                
             # Confirm the update
             embed = discord.Embed(
                 title="🔄 Update Available",

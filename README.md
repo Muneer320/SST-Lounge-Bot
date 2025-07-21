@@ -1,6 +1,6 @@
 # SST Lounge Discord Bot
 
-A comprehensive Discord bot designed for **SST batch of '29** students in the **SST Lounge** server. Features an advanced contest tracking system with intelligent caching, real-time status updates, and automated announcements.
+A comprehensive Discord bot designed for **SST Batch of '29** students in the **SST Lounge** server.
 
 ## ✨ Features
 
@@ -32,12 +32,28 @@ A comprehensive Discord bot designed for **SST batch of '29** students in the **
 - **Safe Restart**: Automatic bot restart after successful updates
 - **Toggle Control**: Easily enable or disable auto-updates via environment variables
 
-###️ Bot Admin System
+### ⚙️ **Enhanced Admin System**
 
 - **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
-- **Bot-Level Privileges**: Custom admin system that doesn't affect Discord server permissions
+- **Bot-Level Privileges**: Custom admin system independent of Discord server permissions
 - **User and Role Support**: Grant admin privileges to specific users or entire roles
-- **Owner Control**: Only server owners can grant/revoke bot admin privileges
+- **Secure Access Control**: Only server owners can manage bot admin privileges
+- **Advanced Logging**: Comprehensive logs with file export functionality
+
+### 📊 **Advanced Logging System**
+
+- **File-Based Export**: Download logs as organized text files instead of limited Discord embeds
+- **Flexible Filtering**: Filter by time (hours/minutes), log level (INFO/WARNING/ERROR/DEBUG), or line count
+- **Smart Validation**: Proper validation prevents negative time values and ensures data integrity
+- **Organized Output**: Professional log formatting with headers, timestamps, and metadata
+- **High Capacity**: Support for up to 1000 lines per export (vs previous 100 line limit)
+
+### 🛡️ **Robust Error Handling**
+
+- **Safe Interactions**: Intelligent handling of Discord interaction states to prevent "already acknowledged" errors
+- **Graceful Fallbacks**: Automatic fallback mechanisms when primary responses fail
+- **Comprehensive Validation**: Input validation across all commands with helpful error messages
+- **Dynamic Recovery**: Smart error recovery that maintains user experience
 - **Admin Transparency**: List all bot admins with grant history
 
 ### �🔧 Admin Management

@@ -12,64 +12,51 @@ from typing import List, Dict, Optional
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-# Import the admin check function
+# Import utility functions
 from features.admin.admin import is_admin
-
+from utils.interaction_helpers import safe_response, safe_defer
 
 # Platforms for autocomplete
-PLATFORMS = ['codeforces', 'codechef', 'atcoder', 'leetcode', 'topcoder', 'hackerrank', 'hackerearth']
+PLATFORMS = ['codeforces', 'codechef', 'atcoder', 'leetcode']
 
 # Autocomplete function for platform parameter
+
+
 async def platform_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     return [
         app_commands.Choice(name=platform.capitalize(), value=platform)
         for platform in PLATFORMS if current.lower() in platform.lower()
     ]
 
-# Autocomplete function for time parameter
-async def time_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    common_times = ['00:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00']
-    
-    # Filter based on current input
-    filtered_times = [
-        app_commands.Choice(name=f"{time} IST", value=time)
-        for time in common_times if current.lower() in time.lower()
-    ]
-    
-    # If input is a partial match for hours, suggest all options for that hour
-    if current and len(current) <= 2 and current.isdigit():
-        hour = current.zfill(2)
-        hour_times = [f"{hour}:00", f"{hour}:30"]
-        filtered_times.extend([
-            app_commands.Choice(name=f"{time} IST", value=time)
-            for time in hour_times if not any(choice.value == time for choice in filtered_times)
-        ])
-    
-    return filtered_times
-
 # Autocomplete function for channel parameter
+
+
 async def channel_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     if not interaction.guild or not isinstance(interaction.user, discord.Member):
         return []
-    
+
     # Get all text channels the user can see
     channels = [
         channel for channel in interaction.guild.text_channels
         if channel.permissions_for(interaction.user).view_channel
     ]
-    
+
     # Filter based on current input
     filtered_channels = [
         app_commands.Choice(name=f"#{channel.name}", value=str(channel.id))
         for channel in channels if current.lower() in channel.name.lower()
     ]
-    
+
     # Add current channel if no input
     if not current and interaction.channel and isinstance(interaction.channel, discord.TextChannel):
-        filtered_channels.insert(0, app_commands.Choice(name=f"#{interaction.channel.name} (current)", value=str(interaction.channel.id)))
-    
+        filtered_channels.insert(0, app_commands.Choice(
+            name=f"#{interaction.channel.name} (current)", value=str(interaction.channel.id)))
+
     return filtered_channels[:25]  # Discord has a limit of 25 choices
+
 
 class ContestAPI:
     """Handles contest data fetching from clist.by API."""
@@ -330,11 +317,11 @@ class ContestCommands(commands.Cog):
             'atcoder': 'atcoder.jp',
             'leetcode': 'leetcode.com'
         }
-        
+
         # Start background tasks
         self.refresh_contest_cache.start()
         self.daily_announcements.start()
-        
+
     async def cog_unload(self):
         """Clean up when cog is unloaded."""
         self.refresh_contest_cache.cancel()
@@ -356,7 +343,7 @@ class ContestCommands(commands.Cog):
         """Wait for bot to be ready before starting cache refresh."""
         await self.bot.wait_until_ready()
 
-    @tasks.loop(hours=24)  # Check daily for announcements
+    @tasks.loop(minutes=60)  # Check every hour for announcements
     async def daily_announcements(self):
         """Background task for daily contest announcements."""
         try:
@@ -371,11 +358,12 @@ class ContestCommands(commands.Cog):
 
                     # Get announcement time for this guild
                     announcement_time = await self.bot.db.get_announcement_time(guild_id)
-                    current_time = datetime.now().strftime('%H:%M')
-
-                    # Check if it's time to send announcement (within 1 hour window)
-                    if abs(datetime.strptime(current_time, '%H:%M').hour -
-                           datetime.strptime(announcement_time, '%H:%M').hour) <= 1:
+                    current_time = datetime.now()
+                    target_time = datetime.strptime(announcement_time, '%H:%M').time()
+                    
+                    # Check if current time matches announcement time (within 1 hour window)
+                    current_hour_min = current_time.strftime('%H:%M')
+                    if current_hour_min == announcement_time:
 
                         guild = self.bot.get_guild(guild_id)
                         if not guild:
@@ -582,38 +570,34 @@ class ContestCommands(commands.Cog):
 
             embed = discord.Embed(
                 title="🏆 Upcoming Programming Contests",
-                description=f"Found {len(contests)} contest(s) in the next {days} day(s)" +
-                (f" for {platform}" if platform else ""),
-                color=0x00ff00
+                description=f"Found **{len(contests)}** contest(s) in the next **{days}** day(s)" +
+                (f" for **{platform}**" if platform else ""),
+                color=0x3498db
             )
 
             for platform_name, contests_list in platform_contests.items():
                 formatted = []
-                # Max 5 per platform
                 display_limit = min(len(contests_list), 5)
-                platform_emoji = '⚪'  # Default emoji
+                platform_emoji = self._get_emoji(contests_list[0].get('platform_key', '')) if contests_list else '⚪'
 
                 for contest in contests_list[:display_limit]:
-                    platform_emoji = self._get_emoji(
-                        contest.get('platform_key', ''))
                     entry = (
-                        f"• **{contest['name']}**\n"
-                        f"    🕒 {contest['start_time']}\n"
-                        f"    ⏱️ {contest.get('duration', 'Unknown')}"
+                        f"**{contest['name']}**\n"
+                        f"Start: {contest['start_time']}\n"
+                        f"Duration: {contest.get('duration', 'Unknown')}"
                     )
                     if contest.get('url'):
-                        entry += f"\n    🔗 [Link]({contest['url']})"
+                        entry += f"\n[Contest Link]({contest['url']})"
                     formatted.append(entry)
 
                 if formatted:
                     embed.add_field(
-                        name=f"**{platform_emoji} {platform_name}**",
+                        name=f"{platform_emoji} {platform_name}",
                         value="\n\n".join(formatted),
                         inline=False
                     )
 
-            embed.set_footer(
-                text="All times in IST • Data from clist.by")
+            embed.set_footer(text="All times in IST • Data from clist.by")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
@@ -683,7 +667,8 @@ class ContestCommands(commands.Cog):
 
             embed = discord.Embed(
                 title="📅 Today's Programming Contests",
-                color=0x2ecc71
+                description="Real-time contest tracking with status updates",
+                color=0x27ae60
             )
 
             if contests:
@@ -699,9 +684,14 @@ class ContestCommands(commands.Cog):
                             contest['start_time'], duration_seconds)
                         status_emoji = self.api._get_status_emoji(status)
 
-                        entry = f"{emoji} **{contest['name']}** ({contest['platform']}) {status_emoji}\n    🕒 {contest['start_time']} • Duration: {contest['duration']}"
+                        entry = f"{emoji} **{contest['name']}** {status_emoji}\n"
+                        entry += f"Platform: {contest['platform']}\n"
+                        entry += f"Start: {contest['start_time']}\n"
+                        entry += f"Duration: {contest['duration']}"
+
                         if contest.get('url'):
-                            entry += f"\n    🔗 [Link]({contest['url']})"
+                            entry += f"\n[Contest Link]({contest['url']})"
+
                         contest_list.append(entry)
                     except Exception as e:
                         logging.warning(
@@ -709,21 +699,23 @@ class ContestCommands(commands.Cog):
                         # Add contest without status if there's an error
                         emoji = self._get_emoji(
                             contest.get('platform_key', ''))
-                        entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
+                        entry = f"{emoji} **{contest['name']}**\n"
+                        entry += f"Platform: {contest['platform']}\n"
+                        entry += f"Start: {contest['start_time']}"
                         if contest.get('url'):
-                            entry += f"\n    🔗 [Link]({contest['url']})"
+                            entry += f"\n[Contest Link]({contest['url']})"
                         contest_list.append(entry)
 
-                embed.description = f"Found {len(contests)} contest(s) for today:"
+                embed.description = f"Found **{len(contests)}** contest(s) for today"
                 embed.add_field(
-                    name="🗓️ Today's Contests",
+                    name="Today's Schedule",
                     value="\n\n".join(contest_list),
                     inline=False
                 )
 
-                # Add legend for status emojis
+                # Add status legend
                 embed.add_field(
-                    name="📊 Status Legend",
+                    name="Status Legend",
                     value="⏰ Upcoming • 🔴 Running • ✅ Ended",
                     inline=False
                 )
@@ -732,7 +724,7 @@ class ContestCommands(commands.Cog):
                     (f" on {platform}" if platform else "") + "."
                 embed.color = 0xe74c3c
 
-            embed.set_footer(text=f"All times in IST • {data_source}")
+            embed.set_footer(text="All times in IST • Data from clist.by")
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
@@ -772,6 +764,7 @@ class ContestCommands(commands.Cog):
 
             embed = discord.Embed(
                 title="🌅 Tomorrow's Programming Contests",
+                description="Plan ahead with tomorrow's contest schedule",
                 color=0x3498db
             )
 
@@ -779,14 +772,17 @@ class ContestCommands(commands.Cog):
                 contest_list = []
                 for contest in contests:
                     emoji = self._get_emoji(contest.get('platform_key', ''))
-                    entry = f"{emoji} **{contest['name']}** ({contest['platform']})\n    🕒 {contest['start_time']}"
+                    entry = f"{emoji} **{contest['name']}**\n"
+                    entry += f"Platform: {contest['platform']}\n"
+                    entry += f"Start: {contest['start_time']}\n"
+                    entry += f"Duration: {contest.get('duration', 'Unknown')}"
                     if contest.get('url'):
-                        entry += f"\n    🔗 [Link]({contest['url']})"
+                        entry += f"\n[Contest Link]({contest['url']})"
                     contest_list.append(entry)
 
-                embed.description = f"Found {len(contests)} contest(s) starting tomorrow:"
+                embed.description = f"Found **{len(contests)}** contest(s) starting tomorrow"
                 embed.add_field(
-                    name="🌅 Tomorrow's Contests",
+                    name="Tomorrow's Schedule",
                     value="\n\n".join(contest_list),
                     inline=False
                 )
@@ -873,7 +869,6 @@ class ContestCommands(commands.Cog):
 
     @app_commands.command(name="contest_time", description="Set daily announcement time")
     @app_commands.describe(time='Time in HH:MM format (24-hour, IST, default: 09:00)')
-    @app_commands.autocomplete(time=time_autocomplete)
     async def contest_time(self, interaction: discord.Interaction, time: str = "09:00"):
         """Set daily contest announcement time."""
         if not interaction.guild:
@@ -904,6 +899,7 @@ class ContestCommands(commands.Cog):
             value="Make sure you've set a contest channel using `/contest_setup` first!",
             inline=False
         )
+        embed.set_footer(text="🕐 Time zone: IST (Indian Standard Time)")
 
         await interaction.response.send_message(embed=embed)
 
@@ -939,10 +935,12 @@ class ContestCommands(commands.Cog):
                 value=f"• **Contests Cached**: {cached_count}\n• **Coverage**: 30 days\n• **Last Updated**: Just now",
                 inline=False
             )
-            success_embed.set_footer(text="Use /contests to see the latest data")
+            success_embed.set_footer(
+                text="Use /contests to see the latest data")
 
             await interaction.edit_original_response(embed=success_embed)
-            logging.info(f"Manual contest cache refresh by {interaction.user} - cached {cached_count} contests")
+            logging.info(
+                f"Manual contest cache refresh by {interaction.user} - cached {cached_count} contests")
 
         except Exception as e:
             logging.error(f"Manual contest refresh error: {e}")

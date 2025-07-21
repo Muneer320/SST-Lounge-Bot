@@ -113,8 +113,15 @@ class GitUpdater:
             if not hasattr(self.bot, "db"):
                 return
                 
-            # Get list of admin users
-            admin_users = await self.bot.db.get_bot_admins()
+            # Get all guild admins across all guilds
+            admin_users = []
+            for guild in self.bot.guilds:
+                try:
+                    guild_admins = await self.bot.db.get_bot_admins(guild.id)
+                    admin_users.extend(guild_admins)
+                except Exception as e:
+                    logger.error(f"Error getting admins for guild {guild.id}: {e}")
+                    continue
             
             # Build notification message
             message = (

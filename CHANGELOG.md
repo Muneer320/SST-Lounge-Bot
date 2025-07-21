@@ -2,6 +2,53 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
+## [1.5.0] - 2025-07-22
+
+### 🚀 Major Enhancements
+
+- **Enhanced Logs System**: Complete rewrite of logs command with file export functionality
+  - Supports up to 1000 lines (increased from 100)
+  - Exports downloadable files instead of Discord embeds
+  - Enhanced file naming with timestamps and filters
+- **Fixed Interaction Errors**: Resolved "Interaction has already been acknowledged" errors across all commands
+- **Improved Error Handling**: Added safe response mechanisms throughout the codebase
+- **Better Validation**: Added proper validation for negative time values in logs command
+- **Dynamic Version Management**: All bot information now loads from version.json
+
+### 🧹 Code Cleanup & Consolidation
+
+- **Helper Function Consolidation**: Removed duplicate `safe_response()` and `safe_defer()` functions
+- **Centralized Utilities**: Created `utils/interaction_helpers.py` for shared functionality
+- **Import Optimization**: Cleaned up and organized imports across all modules
+- **Code Deduplication**: Eliminated redundant code patterns throughout the codebase
+
+### 🏗️ Architectural Improvements
+
+- **Better Separation of Concerns**: Clear distinction between utilities, features, and core functionality
+- **Consistent Import Patterns**: Standardized import structure across all modules
+- **Enhanced Modularity**: Improved module organization for better maintainability
+- **Safe Response Helpers**: Added `safe_response()` and `safe_defer()` utility functions
+
+### ✅ Bug Fixes
+
+- **Database Error Fix**: Fixed `get_bot_admins()` missing guild_id parameter in updater
+- **Admin Logging Spam**: Reduced admin permission check logging from INFO to DEBUG level
+- **Double Response Errors**: Fixed commands trying to respond twice to interactions
+
+### � Documentation Overhaul
+
+- **Version Synchronization**: All documentation now references correct version (1.5.0)
+- **README Updates**: Enhanced README with latest feature descriptions and updated structure
+- **FEATURES.md Refresh**: Comprehensive update with current architectural details
+- **Changelog Maintenance**: Properly documented all version changes and improvements
+
+### 🔧 Technical Improvements
+
+- **Version Integration**: Created centralized version utility for dynamic information loading
+- **Enhanced Autocomplete**: Added autocomplete functionality to various commands
+- **Improved Documentation**: Updated markdown files with accurate and current information
+- **Code Quality**: Removed unused imports and cleaned up dead code
+
 ## [1.4.0] - 2025-07-18
 
 ### Changed
@@ -105,7 +152,6 @@ All notable changes to the SST Lounge Discord Bot project will be documented in 
 - **Permission Isolation**: Bot admin privileges don't affect Discord server permissions
 - **Owner Control**: Only server owners can grant/revoke bot admin privileges
 - **Audit Trail**: All bot admin grants tracked with timestamps and granter information
-
 
 ## [1.0.0] - 2025-07-16
 

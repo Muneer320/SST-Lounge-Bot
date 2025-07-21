@@ -9,6 +9,10 @@ from discord.ext import commands, tasks
 from datetime import datetime
 from typing import Optional
 import asyncio
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+from utils.interaction_helpers import safe_response
 
 
 class RoleManager(commands.Cog):
@@ -278,7 +282,7 @@ class RoleManager(commands.Cog):
 
         except Exception as e:
             self.logger.error(f"Error in veteran_info_command: {e}")
-            await interaction.response.send_message("❌ An error occurred while fetching veteran information.")
+            await safe_response(interaction, "❌ An error occurred while fetching veteran information.")
 
 
 async def setup(bot):

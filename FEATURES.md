@@ -1,30 +1,36 @@
 # SST Lounge Bot - Features Documentation
 
-## 🏗️ Modular Architecture
 
-The SST Lounge Bot uses a clean, modular architecture where each feature is self-contained, with intelligent caching, real-time status detection, and automated background tasks.
 
-## 📁 Directory Structure
+## 🏗️ Enhanced Architecture
+
+The SST Lounge Bot uses a clean, modular architecture where each feature is self-contained, with intelligent caching, real-time status detection, automated background tasks, and robust error handling mechanisms.
+
+## 📁 Project Structure
 
 ```
-core/
-├── bot.py              # Main bot class and initialization
-├── database.py         # SQLite operations and caching
-├── updater.py          # Auto-update functionality
-└── config.py           # Configuration management
+core/                   # Core bot functionality
+├── bot.py             # Main bot class and initialization
+├── database.py        # SQLite operations and caching
+├── updater.py         # Auto-update functionality
+└── __init__.py        # Package initialization
 
-features/
-├── admin/
-│   └── admin.py        # Admin commands and permissions
-├── contests/
-│   └── contests.py     # Contest tracking, caching, and automation
-├── roles/
-│   └── roles.py        # Automatic role management system
-└── utilities/
-    └── utilities.py    # Basic utility commands
+features/              # Modular feature system
+├── admin/             # Admin commands with enhanced permissions
+│   └── admin.py       # Secure admin system and safe responses
+├── contests/          # Contest tracking with intelligent caching
+│   └── contests.py    # Platform integration and automation
+├── roles/             # Automatic role management system
+│   └── roles.py       # Discord Veteran role automation
+└── utilities/         # Enhanced utility commands
+    └── utilities.py   # File-based logging and dynamic information
 
-database/               # SQLite database files
-logs/                   # Bot operation logs
+utils/                 # Utility modules
+└── version.py         # Dynamic version management
+
+database/              # SQLite database files (auto-created)
+logs/                  # Bot operation logs (auto-created)
+.github/               # GitHub integration and templates
 ```
 
 ## 🚀 Features Overview
@@ -71,23 +77,44 @@ logs/                   # Bot operation logs
 
 ### Admin System (`features/admin/admin.py`)
 
-- **Purpose**: Bot administration and permission management
+- **Purpose**: Bot administration, permission management, and system monitoring
 - **Commands**:
 
-  - `/info` - Show bot statistics and information
-  - `/sync` - Sync slash commands with Discord (Bot Admin)
-  - `/update` - Manually trigger bot updates from GitHub with confirmation (Bot Admin)
-  - `/grant_admin [user] or [role]` - Grant bot admin privileges (Owner only)
-  - `/revoke_admin [user] or [role]` - Revoke bot admin privileges (Owner only)
-  - `/list_admins` - List all bot admins with grant history (Bot Admin)
+  - `/info` - Bot statistics with dynamic version information
+  - `/sync` - Sync slash commands with enhanced error handling
+  - `/grant_admin <user/role>` - Grant bot admin privileges (Server Owner only)
+  - `/revoke_admin <user/role>` - Revoke bot admin privileges (Server Owner only)
+  - `/list_admins` - List all bot admins with grant history
+  - `/update [schedule]` - Manual bot updates with interactive confirmation
+
+- **Enhanced Features**:
+  - **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
+  - **Safe Response Handling**: Intelligent interaction management prevents "already acknowledged" errors
+  - **Dynamic Version Display**: Real-time bot version information from version.json
+  - **Interactive Updates**: User-friendly update confirmation with buttons
+  - **Comprehensive Error Handling**: Graceful fallbacks and informative error messages
+  - **Secure Access Control**: Role-based permissions with database persistence
+
+### Advanced Logging System (`features/utilities/utilities.py`)
+
+- **Purpose**: Comprehensive log management and export functionality
+- **Commands**:
+
+  - `/logs [lines] [hours] [minutes] [level]` - Export logs as downloadable files
+  - **Parameters**:
+    - `lines`: Number of lines (1-1000, default: 50)
+    - `hours`: Last N hours (must be positive)
+    - `minutes`: Last N minutes (must be positive, overrides hours)
+    - `level`: Filter by log level (INFO/WARNING/ERROR/DEBUG)
 
 - **Advanced Features**:
-  - **Three-Tier Permission System**: Server owner → Discord admins → Bot admins
-  - **Bot-Level Privileges**: Custom admin system separate from Discord server permissions
-  - **User and Role Support**: Grant privileges to individuals or entire roles
-  - **Transparent Management**: Track who granted admin privileges and when
-  - **Database Integration**: Persistent bot admin storage with SQLite
-  - **Update Management**: Manual update triggering with interactive confirmation dialogs
+  - **File-Based Export**: Downloads organized text files instead of Discord embeds
+  - **Enhanced Capacity**: Support for up to 1000 lines (10x increase from previous limit)
+  - **Smart Validation**: Prevents negative time values with helpful error messages
+  - **Professional Formatting**: Headers with metadata, timestamps, and organized content
+  - **Intelligent Filtering**: Time-based and level-based log filtering
+  - **Dynamic Naming**: Auto-generated filenames with timestamps and applied filters
+  - **Autocomplete Support**: Log level suggestions for improved user experience
 
 ### Role Management System (`features/roles/roles.py`)
 
