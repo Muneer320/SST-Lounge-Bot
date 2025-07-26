@@ -3,6 +3,7 @@ Contest Feature Module
 Contest tracking system for SST Lounge Discord Bot.
 """
 
+from features.admin.admin import is_admin
 import os
 import logging
 import aiohttp
@@ -12,17 +13,9 @@ from typing import List, Dict, Optional
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-# Import utility functions
-from features.admin.admin import is_admin
-from utils.interaction_helpers import safe_response, safe_defer
 
-# Platforms for autocomplete
 PLATFORMS = ['codeforces', 'codechef', 'atcoder', 'leetcode']
-
-# Autocomplete function for platform parameter
 
 
 async def platform_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -30,8 +23,6 @@ async def platform_autocomplete(interaction: discord.Interaction, current: str) 
         app_commands.Choice(name=platform.capitalize(), value=platform)
         for platform in PLATFORMS if current.lower() in platform.lower()
     ]
-
-# Autocomplete function for channel parameter
 
 
 async def channel_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
@@ -359,8 +350,7 @@ class ContestCommands(commands.Cog):
                     # Get announcement time for this guild
                     announcement_time = await self.bot.db.get_announcement_time(guild_id)
                     current_time = datetime.now()
-                    target_time = datetime.strptime(announcement_time, '%H:%M').time()
-                    
+
                     # Check if current time matches announcement time (within 1 hour window)
                     current_hour_min = current_time.strftime('%H:%M')
                     if current_hour_min == announcement_time:
@@ -578,7 +568,8 @@ class ContestCommands(commands.Cog):
             for platform_name, contests_list in platform_contests.items():
                 formatted = []
                 display_limit = min(len(contests_list), 5)
-                platform_emoji = self._get_emoji(contests_list[0].get('platform_key', '')) if contests_list else '⚪'
+                platform_emoji = self._get_emoji(contests_list[0].get(
+                    'platform_key', '')) if contests_list else '⚪'
 
                 for contest in contests_list[:display_limit]:
                     entry = (
@@ -637,7 +628,6 @@ class ContestCommands(commands.Cog):
 
             # First try to use cached data
             contests = await self.bot.db.get_contests_today(platform=platform_key, limit=limit)
-            data_source = "Data from clist.by"
 
             # If no cached data or cache is stale, fetch fresh data
             if not contests or await self.bot.db.is_cache_stale():
@@ -658,7 +648,6 @@ class ContestCommands(commands.Cog):
                         fresh_contests = fresh_contests[:limit]
 
                     contests = fresh_contests
-                    data_source = "Fresh API data"
                 except Exception as e:
                     logging.warning(f"Failed to fetch fresh data: {e}")
                     if not contests:  # Only show error if we have no fallback data
@@ -816,7 +805,7 @@ class ContestCommands(commands.Cog):
             return
 
         # Check if user has admin permissions
-        if not is_admin(interaction):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission or server ownership required.", ephemeral=True)
             return
 
@@ -875,7 +864,7 @@ class ContestCommands(commands.Cog):
             await interaction.response.send_message("❌ This command can only be used in servers.", ephemeral=True)
             return
 
-        if not is_admin(interaction):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission or server ownership required.", ephemeral=True)
             return
 
@@ -907,7 +896,7 @@ class ContestCommands(commands.Cog):
     async def refresh_contests(self, interaction: discord.Interaction):
         """Admin command to manually refresh contest cache."""
         # Check if user is admin
-        if not is_admin(interaction):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
             return
 

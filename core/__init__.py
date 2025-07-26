@@ -1,6 +1,5 @@
 """
 SST Lounge Bot - Core Package
-For: SST Batch '29 Discord Server 'SST Lounge'
 """
 
 from .bot import SSTLoungeBot

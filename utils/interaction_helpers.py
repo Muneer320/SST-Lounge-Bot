@@ -33,4 +33,3 @@ async def safe_defer(interaction: discord.Interaction, ephemeral: bool = False):
     except discord.HTTPException:
         logger.debug("Interaction already acknowledged, cannot defer")
         return False
-        return False

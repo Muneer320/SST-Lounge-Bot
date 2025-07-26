@@ -3,21 +3,16 @@ Admin Feature Module
 Administrative commands for SST Lounge Discord Server.
 """
 
+from utils.interaction_helpers import safe_response
+from utils.version import get_bot_name, get_bot_version, get_bot_description
 import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
 from typing import Optional, List
-import asyncio
 from datetime import datetime, timedelta
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from utils.version import get_bot_name, get_bot_version, get_bot_description
-from utils.interaction_helpers import safe_response
 
 
-# Autocomplete function for schedule parameter
 async def schedule_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
     now = datetime.now()
     options = [
@@ -27,47 +22,36 @@ async def schedule_autocomplete(interaction: discord.Interaction, current: str) 
         ("Midnight", "00:00"),
         ("Tomorrow morning", "08:00"),
     ]
-    
+
     return [
         app_commands.Choice(name=label, value=value)
         for label, value in options if current.lower() in label.lower() or current.lower() in value.lower()
     ]
 
 
-def is_admin(interaction: discord.Interaction) -> bool:
+async def is_server_owner(interaction: discord.Interaction) -> bool:
     """
-    Check if user has admin privileges (server owner, Discord admin, or bot admin).
-
-    This function performs quick synchronous checks only. For bot admin privileges,
-    use is_bot_admin() which performs async database queries.
-
-    Args:
-        interaction: Discord interaction object
-
-    Returns:
-        bool: True if user has server owner or Discord admin privileges
+    Check if the user is the server owner.
+    This should be used for commands that ONLY the server owner can use,
+    like granting/revoking bot admin privileges.
     """
     if not interaction.guild:
         return False
-
-    # Server owner always has admin privileges
-    if interaction.user.id == interaction.guild.owner_id:
-        logging.debug(
-            f"User {interaction.user} is server owner - granting admin access")
-        return True
-
-    # Check if user is a member and has administrator permission
-    member = interaction.guild.get_member(interaction.user.id)
-    if member and member.guild_permissions.administrator:
-        logging.debug(f"User {interaction.user} has administrator permission")
-        return True
-
-    logging.debug(f"User {interaction.user} requires bot admin check")
-    return False
+    return interaction.user.id == interaction.guild.owner_id
 
 
-async def is_bot_admin(interaction: discord.Interaction, bot) -> bool:
-    """Check if user has bot admin privileges (async version)."""
+async def is_admin(interaction: discord.Interaction, bot) -> bool:
+    """
+    COMPREHENSIVE ADMIN CHECK - One function for all admin privilege checking.
+
+    Checks in order of priority:
+    1. Server owner (highest priority)
+    2. Discord administrators 
+    3. Bot admin users (direct grants)
+    4. Bot admin roles (role-based grants)
+
+    This is the ONLY function needed for admin checking throughout the codebase.
+    """
     if not interaction.guild:
         return False
 
@@ -81,14 +65,12 @@ async def is_bot_admin(interaction: discord.Interaction, bot) -> bool:
 
     # Check bot-level admin privileges
     if isinstance(interaction.user, discord.Member):
-        # Check if user has direct bot admin privileges
-        if await bot.db.is_bot_admin(interaction.guild.id, interaction.user.id, None):
-            return True
+        # Get user's role IDs
+        user_role_ids = [role.id for role in interaction.user.roles]
 
-        # Check if any of user's roles have bot admin privileges
-        for role in interaction.user.roles:
-            if await bot.db.is_bot_admin(interaction.guild.id, None, role.id):
-                return True
+        # Check both user and role admin privileges in one call
+        if await bot.db.is_bot_admin(interaction.guild.id, interaction.user.id, user_role_ids):
+            return True
 
     return False
 
@@ -157,7 +139,7 @@ class AdminCommands(commands.Cog):
     @app_commands.command(name='sync', description='Sync slash commands')
     async def sync_commands(self, interaction: discord.Interaction):
         """Sync slash commands."""
-        if not await is_bot_admin(interaction, self.bot):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
 
@@ -207,7 +189,7 @@ class AdminCommands(commands.Cog):
             return
 
         # Only server owner can grant bot admin privileges
-        if interaction.user.id != interaction.guild.owner_id:
+        if not await is_server_owner(interaction):
             await interaction.response.send_message("❌ Only the server owner can grant bot admin privileges.", ephemeral=True)
             return
 
@@ -223,7 +205,7 @@ class AdminCommands(commands.Cog):
             embed = None
             if user:
                 # Check if user already has bot admin privileges
-                if await self.bot.db.is_bot_admin(interaction.guild.id, user.id, None):
+                if await self.bot.db.is_user_bot_admin(interaction.guild.id, user.id):
                     embed = discord.Embed(
                         title="ℹ️ Already Bot Admin",
                         description=f"{user.mention} already has bot admin privileges.",
@@ -243,7 +225,7 @@ class AdminCommands(commands.Cog):
 
             elif role:
                 # Check if role already has bot admin privileges
-                if await self.bot.db.is_bot_admin(interaction.guild.id, None, role.id):
+                if await self.bot.db.is_role_bot_admin(interaction.guild.id, role.id):
                     embed = discord.Embed(
                         title="ℹ️ Already Bot Admin",
                         description=f"Role {role.mention} already has bot admin privileges.",
@@ -286,7 +268,7 @@ class AdminCommands(commands.Cog):
             return
 
         # Only server owner can revoke bot admin privileges
-        if interaction.user.id != interaction.guild.owner_id:
+        if not await is_server_owner(interaction):
             await interaction.response.send_message("❌ Only the server owner can revoke bot admin privileges.", ephemeral=True)
             return
 
@@ -302,7 +284,7 @@ class AdminCommands(commands.Cog):
             embed = None
             if user:
                 # Check if user has bot admin privileges
-                if not await self.bot.db.is_bot_admin(interaction.guild.id, user.id, None):
+                if not await self.bot.db.is_user_bot_admin(interaction.guild.id, user.id):
                     embed = discord.Embed(
                         title="ℹ️ No Bot Admin Privileges",
                         description=f"{user.mention} doesn't have bot admin privileges to revoke.",
@@ -322,7 +304,7 @@ class AdminCommands(commands.Cog):
 
             elif role:
                 # Check if role has bot admin privileges
-                if not await self.bot.db.is_bot_admin(interaction.guild.id, None, role.id):
+                if not await self.bot.db.is_role_bot_admin(interaction.guild.id, role.id):
                     embed = discord.Embed(
                         title="ℹ️ No Bot Admin Privileges",
                         description=f"Role {role.mention} doesn't have bot admin privileges to revoke.",
@@ -356,7 +338,7 @@ class AdminCommands(commands.Cog):
             return
 
         # Only server owner or bot admins can view admin list
-        if not await is_bot_admin(interaction, self.bot):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
 
@@ -437,11 +419,12 @@ class AdminCommands(commands.Cog):
     async def update_bot(self, interaction: discord.Interaction, schedule: Optional[str] = "now"):
         """Update the bot to the latest version from GitHub."""
         # Check if user has bot admin privileges
-        if not await is_bot_admin(interaction, self.bot):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
 
-        logging.info(f"Update command used by {interaction.user} with schedule: {schedule}")
+        logging.info(
+            f"Update command used by {interaction.user} with schedule: {schedule}")
 
         try:
             # Check if update is available
@@ -466,7 +449,7 @@ class AdminCommands(commands.Cog):
             else:
                 # For future enhancement - parse schedule string
                 schedule_text = "immediately"
-                
+
             # Confirm the update
             embed = discord.Embed(
                 title="🔄 Update Available",
@@ -484,7 +467,6 @@ class AdminCommands(commands.Cog):
                     super().__init__(timeout=timeout)
                     self.bot = bot
 
-                    
                 @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
                 async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
                     if button_interaction.user.id != interaction.user.id:

@@ -2,17 +2,37 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
+## [1.5.2] - 2025-07-27
+
+### 🏗️ Admin System Consolidation
+
+- **Unified Admin Functions**: Consolidated all admin permission checking into single comprehensive functions
+  - Created `is_admin()` function for general admin privilege checking (server owner → Discord admin → bot admin)
+  - Added `is_server_owner()` function for owner-only operations like grant/revoke admin
+  - Updated all modules to use unified admin checking system
+  - Removed redundant admin checking functions (`is_admin_async`, etc.)
+
+### 🧹 Codebase Cleanup
+
+- **Import Optimization**: Removed unnecessary imports and sys.path manipulations
+- **Code Simplification**: Eliminated redundant comments and duplicate code
+- **Architecture Improvement**: Streamlined admin permission architecture for better maintainability
+
 ## [1.5.1] - 2025-07-26
+
+### 🔧 Bug Fixes
+
+- **Admin Permission System**: Fixed critical issue where user admins could not access admin commands
+  - Corrected database method calls for admin privilege checking
+  - Added comprehensive admin checking across all admin commands
+  - Enhanced role-based admin privilege validation
+  - Improved guild-scoped permission isolation
 
 ### 🧹 Organization
 
 - **Mention Response System**: Fixed Discord API button URL conflicts and improved mention response functionality
-
-### 🔧 Technical Improvements
-
-- **Button Fix**: Resolved Discord API error for link buttons in mention responses
-- **Import Optimization**: Cleaned up imports and removed unused code
-- **Documentation**: Simplified inline documentation and removed excessive commenting
+- **Code Cleanup**: Removed unused imports, variables, and redundant code
+- **Performance**: Optimized database queries and reduced lint warnings
 
 ## [1.5.0] - 2025-07-22
 

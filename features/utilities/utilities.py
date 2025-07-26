@@ -3,22 +3,18 @@ Utility Commands for SST Lounge
 Basic utility commands and bot information.
 """
 
+from features.admin.admin import is_admin
+from typing import Optional
+from datetime import datetime, timedelta
+from utils.help_views import HelpView, AdminHelpView
+from utils.version import get_bot_name
 import discord
 from discord.ext import commands
 from discord import app_commands
 import logging
 import os
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from utils.version import get_bot_name, get_bot_description, get_repository_url
-from utils.help_views import HelpView, AdminHelpView
-from datetime import datetime, timedelta
-from typing import Optional
 
-# Import the admin check function
-from features.admin.admin import is_admin
 
-# Autocomplete functions
 async def log_level_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     levels = ["INFO", "WARNING", "ERROR", "DEBUG"]
     return [
@@ -67,8 +63,8 @@ class UtilityCommands(commands.Cog):
         embed = discord.Embed(
             title="🤖 SST Lounge Bot - Interactive Command Guide",
             description=f"**{get_bot_name()} for SST Batch '29**\n\n"
-                       "Welcome! Use the buttons below to explore different command categories.\n"
-                       "Each button shows detailed information about specific features.",
+            "Welcome! Use the buttons below to explore different command categories.\n"
+            "Each button shows detailed information about specific features.",
             color=0x3498db
         )
 
@@ -95,21 +91,21 @@ class UtilityCommands(commands.Cog):
         )
 
         # Create interactive view with buttons
-        view = HelpView()
+        view = HelpView(self.bot)
         await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="admin_help", description="Show admin commands (Admin only)")
     async def admin_help(self, interaction: discord.Interaction):
         """Show interactive admin commands - only visible to admins."""
-        if not is_admin(interaction):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
             return
 
         embed = discord.Embed(
             title=f"⚙️ {get_bot_name()} - Interactive Admin Guide",
             description="**Administrative Control Panel for SST Batch '29**\n\n"
-                       "Use the buttons below to explore different admin command categories.\n"
-                       "Each section provides detailed information about specific administrative features.",
+            "Use the buttons below to explore different admin command categories.\n"
+            "Each section provides detailed information about specific administrative features.",
             color=0xe74c3c
         )
 
@@ -135,7 +131,7 @@ class UtilityCommands(commands.Cog):
         )
 
         # Create interactive admin view with buttons
-        view = AdminHelpView()
+        view = AdminHelpView(self.bot)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name="logs", description="Export bot logs as file (Admin only)")
@@ -146,13 +142,13 @@ class UtilityCommands(commands.Cog):
         level="Filter by log level (INFO, WARNING, ERROR, DEBUG)"
     )
     @app_commands.autocomplete(level=log_level_autocomplete)
-    async def logs(self, interaction: discord.Interaction, 
-                   lines: Optional[int] = 50, 
+    async def logs(self, interaction: discord.Interaction,
+                   lines: Optional[int] = 50,
                    hours: Optional[int] = None,
                    minutes: Optional[int] = None,
                    level: Optional[str] = None):
         """Export bot logs as downloadable file - admin only command."""
-        if not is_admin(interaction):
+        if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
             return
 
@@ -185,12 +181,12 @@ class UtilityCommands(commands.Cog):
                 'bot.log',
                 'logs/bot.log'
             ]
-            
+
             for path in possible_paths:
                 if os.path.exists(path):
                     log_file = path
                     break
-            
+
             if not log_file:
                 await interaction.followup.send("❌ Log file not found. Check bot configuration.", ephemeral=True)
                 return
@@ -206,7 +202,7 @@ class UtilityCommands(commands.Cog):
             # Filter by time if specified
             filtered_lines = []
             time_desc = "recent entries"  # Default description
-            
+
             if minutes or hours:
                 cutoff_time = datetime.now()
                 if minutes:
@@ -221,13 +217,14 @@ class UtilityCommands(commands.Cog):
                         # Extract timestamp from log line (assuming format: YYYY-MM-DD HH:MM:SS,mmm)
                         if len(line) > 19:
                             timestamp_str = line[:19]
-                            log_time = datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+                            log_time = datetime.strptime(
+                                timestamp_str, '%Y-%m-%d %H:%M:%S')
                             if log_time >= cutoff_time:
                                 filtered_lines.append(line)
                     except (ValueError, IndexError):
                         # If we can't parse timestamp, include the line anyway
                         filtered_lines.append(line)
-                
+
                 log_lines = filtered_lines
                 if not log_lines:
                     await interaction.followup.send(f"📝 No logs found in the {time_desc}.", ephemeral=True)
@@ -235,22 +232,24 @@ class UtilityCommands(commands.Cog):
             else:
                 # Use last N lines
                 lines = lines or 50  # Ensure lines is not None
-                log_lines = all_lines[-lines:] if len(all_lines) > lines else all_lines
+                log_lines = all_lines[-lines:] if len(
+                    all_lines) > lines else all_lines
                 time_desc = f"most recent {len(log_lines)} entries"
 
             # Filter by log level if specified
             if level:
                 level_upper = level.upper()
-                log_lines = [line for line in log_lines if f" - {level_upper} - " in line]
+                log_lines = [
+                    line for line in log_lines if f" - {level_upper} - " in line]
                 if not log_lines:
                     await interaction.followup.send(f"📝 No {level_upper} logs found in the {time_desc}.", ephemeral=True)
                     return
 
             # Prepare log content
             log_content = ''.join(log_lines)
-            
+
             # Create file content with header
-            file_content = f"=== Bot Logs Export ===\n"
+            file_content = "=== Bot Logs Export ===\n"
             file_content += f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             file_content += f"Time Range: {time_desc}\n"
             if level:
@@ -263,7 +262,7 @@ class UtilityCommands(commands.Cog):
             # Create a file-like object
             import io
             file_buffer = io.BytesIO(file_content.encode('utf-8'))
-            
+
             # Generate filename with timestamp and filters
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename_parts = ['logs', timestamp]
@@ -274,17 +273,17 @@ class UtilityCommands(commands.Cog):
             elif hours:
                 filename_parts.append(f'{hours}hr')
             filename = '_'.join(filename_parts) + '.txt'
-            
+
             # Create Discord file object
             discord_file = discord.File(file_buffer, filename=filename)
-            
+
             # Send confirmation message with file
             await interaction.followup.send(
                 content=f"� **Bot Logs Export**\n"
-                        f"🕒 **Time Range:** {time_desc}\n"
-                        f"📊 **Total Lines:** {len(log_lines)}\n"
-                        f"📁 **File:** `{filename}`" + 
-                        (f"\n🔍 **Level Filter:** {level.upper()}" if level else ""),
+                f"🕒 **Time Range:** {time_desc}\n"
+                f"📊 **Total Lines:** {len(log_lines)}\n"
+                f"📁 **File:** `{filename}`" +
+                (f"\n🔍 **Level Filter:** {level.upper()}" if level else ""),
                 file=discord_file,
                 ephemeral=True
             )
@@ -312,7 +311,7 @@ class UtilityCommands(commands.Cog):
                   "```\n"
                   "Steps to Report:\n"
                   "1. Report it on GitHub Issues\n"
-                  "2. Use our bug report template\n" 
+                  "2. Use our bug report template\n"
                   "3. Include steps to reproduce\n"
                   "4. Mention the command that failed\n"
                   "```\n"
@@ -372,7 +371,7 @@ class UtilityCommands(commands.Cog):
         embed.set_footer(
             text="Made by SST Batch '29 • For SST Batch '29 • Open Source ❤️ |"
         )
-        
+
         await interaction.response.send_message(embed=embed)
 
 

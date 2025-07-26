@@ -475,6 +475,34 @@ class SimpleDB:
             logging.error(f"Error checking bot admin: {e}")
             return False
 
+    async def is_user_bot_admin(self, guild_id: int, user_id: int) -> bool:
+        """Check if a specific user has direct bot admin privileges."""
+        if not self.connection:
+            return False
+
+        try:
+            cursor = await self.connection.execute("""
+                SELECT 1 FROM bot_admins WHERE guild_id = ? AND user_id = ?
+            """, (guild_id, user_id))
+            return await cursor.fetchone() is not None
+        except Exception as e:
+            logging.error(f"Error checking user bot admin: {e}")
+            return False
+
+    async def is_role_bot_admin(self, guild_id: int, role_id: int) -> bool:
+        """Check if a specific role has bot admin privileges."""
+        if not self.connection:
+            return False
+
+        try:
+            cursor = await self.connection.execute("""
+                SELECT 1 FROM bot_admins WHERE guild_id = ? AND role_id = ?
+            """, (guild_id, role_id))
+            return await cursor.fetchone() is not None
+        except Exception as e:
+            logging.error(f"Error checking role bot admin: {e}")
+            return False
+
     async def get_bot_admins(self, guild_id: int) -> List[Dict]:
         """Get all bot admins for a guild."""
         if not self.connection:

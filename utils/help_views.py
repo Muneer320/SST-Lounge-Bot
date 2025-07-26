@@ -10,10 +10,11 @@ from utils.version import get_bot_name
 class HelpView(discord.ui.View):
     """Interactive buttons for help command responses."""
 
-    def __init__(self):
+    def __init__(self, bot=None):
         super().__init__(timeout=300)  # 5 minutes timeout
+        self.bot = bot
 
-    @discord.ui.button(label="🏆 Contest Commands", style=discord.ButtonStyle.primary, emoji="🏆")
+    @discord.ui.button(label="Contest Commands", style=discord.ButtonStyle.primary, emoji="🏆")
     async def contest_help_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show detailed contest command information."""
         embed = discord.Embed(
@@ -56,7 +57,7 @@ class HelpView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🛠️ Utility Commands", style=discord.ButtonStyle.secondary, emoji="🛠️")
+    @discord.ui.button(label="Utility Commands", style=discord.ButtonStyle.secondary, emoji="🛠️")
     async def utility_help_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show utility command information."""
         embed = discord.Embed(
@@ -85,7 +86,7 @@ class HelpView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🎭 Role Management", style=discord.ButtonStyle.secondary, emoji="🎭")
+    @discord.ui.button(label="Role Management", style=discord.ButtonStyle.secondary, emoji="🎭")
     async def role_help_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show role management information."""
         embed = discord.Embed(
@@ -123,13 +124,13 @@ class HelpView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="⚙️ Admin Commands", style=discord.ButtonStyle.danger, emoji="⚙️")
+    @discord.ui.button(label="Admin Commands", style=discord.ButtonStyle.danger, emoji="⚙️")
     async def admin_help_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show admin command information."""
         # Import here to avoid circular imports
         from features.admin.admin import is_admin
 
-        if not is_admin(interaction):
+        if not self.bot or not await is_admin(interaction, self.bot):
             await interaction.response.send_message(
                 "❌ **Admin Access Required**\n\n"
                 "This section is only available to bot administrators.\n"
@@ -181,10 +182,11 @@ class HelpView(discord.ui.View):
 class AdminHelpView(discord.ui.View):
     """Interactive buttons for admin help command responses."""
 
-    def __init__(self):
+    def __init__(self, bot=None):
         super().__init__(timeout=300)  # 5 minutes timeout
+        self.bot = bot
 
-    @discord.ui.button(label="🤖 Bot Management", style=discord.ButtonStyle.primary, emoji="🤖")
+    @discord.ui.button(label="Bot Management", style=discord.ButtonStyle.primary, emoji="🤖")
     async def bot_management_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show detailed bot management commands."""
         embed = discord.Embed(
@@ -227,7 +229,7 @@ class AdminHelpView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🏆 Contest Settings", style=discord.ButtonStyle.secondary, emoji="🏆")
+    @discord.ui.button(label="Contest Settings", style=discord.ButtonStyle.secondary, emoji="🏆")
     async def contest_settings_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show contest management commands."""
         embed = discord.Embed(
@@ -241,7 +243,6 @@ class AdminHelpView(discord.ui.View):
             value="**`/contest_setup [channel]`** - Set announcement channel\n"
                   "• Configure where daily contest announcements are posted\n"
                   "• Bot will automatically post at configured time\n"
-                  "• Use without channel parameter to disable announcements\n\n"
                   "**`/contest_time [time]`** - Set announcement time\n"
                   "• Format: HH:MM in 24-hour format (IST timezone)\n"
                   "• Default time is 09:00 IST\n"
@@ -270,7 +271,7 @@ class AdminHelpView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="👑 Owner Commands", style=discord.ButtonStyle.danger, emoji="👑")
+    @discord.ui.button(label="Owner Commands", style=discord.ButtonStyle.danger, emoji="👑")
     async def owner_commands_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Show owner-only commands."""
         embed = discord.Embed(
@@ -289,26 +290,6 @@ class AdminHelpView(discord.ui.View):
                   "• Same syntax as grant command\n"
                   "• Immediately removes all bot admin access\n"
                   "• Does not affect Discord server permissions",
-            inline=False
-        )
-
-        embed.add_field(
-            name="📋 Admin Management",
-            value="**`/list_admins`** - View all bot administrators\n"
-                  "• Shows current bot admins with grant history\n"
-                  "• Displays who granted each admin privilege\n"
-                  "• Includes grant timestamps\n"
-                  "• Available to all admins, not just owners",
-            inline=False
-        )
-
-        embed.add_field(
-            name="🎭 Role Management",
-            value="**`/check_veterans`** - Manual veteran role check\n"
-                  "• Checks all server members for veteran qualification\n"
-                  "• Assigns Discord Veteran role to 5+ year accounts\n"
-                  "• Usually runs automatically, use for manual trigger\n"
-                  "• Shows summary of role assignments made",
             inline=False
         )
 

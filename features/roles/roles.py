@@ -3,16 +3,14 @@ Role Management Feature Module
 Automatic role assignment based on Discord account age.
 """
 
+from features.admin.admin import is_admin
+from utils.interaction_helpers import safe_response
 import logging
 import discord
 from discord.ext import commands, tasks
 from datetime import datetime
 from typing import Optional
 import asyncio
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-from utils.interaction_helpers import safe_response
 
 
 class RoleManager(commands.Cog):
@@ -206,7 +204,8 @@ class RoleManager(commands.Cog):
                 )
                 return
 
-            if not interaction.user.guild_permissions.administrator:
+            # Check admin permissions (Discord admin or bot admin)
+            if not await is_admin(interaction, self.bot):
                 await interaction.response.send_message(
                     "❌ You need administrator permissions to use this command.",
                     ephemeral=True
