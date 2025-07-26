@@ -2,6 +2,18 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
+## [1.5.1] - 2025-07-26
+
+### 🧹 Organization
+
+- **Mention Response System**: Fixed Discord API button URL conflicts and improved mention response functionality
+
+### 🔧 Technical Improvements
+
+- **Button Fix**: Resolved Discord API error for link buttons in mention responses
+- **Import Optimization**: Cleaned up imports and removed unused code
+- **Documentation**: Simplified inline documentation and removed excessive commenting
+
 ## [1.5.0] - 2025-07-22
 
 ### 🚀 Major Enhancements

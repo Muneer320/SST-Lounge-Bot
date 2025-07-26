@@ -1,7 +1,5 @@
 # SST Lounge Bot - Features Documentation
 
-
-
 ## 🏗️ Enhanced Architecture
 
 The SST Lounge Bot uses a clean, modular architecture where each feature is self-contained, with intelligent caching, real-time status detection, automated background tasks, and robust error handling mechanisms.
@@ -26,8 +24,11 @@ features/              # Modular feature system
     └── utilities.py   # File-based logging and dynamic information
 
 utils/                 # Utility modules
-└── version.py         # Dynamic version management
+├── interaction_helpers.py  # Safe Discord interaction handling
+├── mention_response.py     # Bot mention response system
+└── version.py              # Dynamic version management
 
+tests/                 # Test files and validation scripts
 database/              # SQLite database files (auto-created)
 logs/                  # Bot operation logs (auto-created)
 .github/               # GitHub integration and templates
@@ -138,9 +139,49 @@ logs/                  # Bot operation logs (auto-created)
 - **Commands**:
   - `/ping` - Check bot latency and response time
   - `/hello` - Friendly greeting with bot introduction
-  - `/help` - Comprehensive command listing and documentation
+  - `/help` - Interactive command guide with category buttons
+  - `/admin_help` - Interactive admin guide with detailed sections (admin only)
   - `/contribute` - Get information about contributing to the bot development
+- **Interactive Features**:
+  - **Category Buttons**: Navigate through different command categories
+  - **Detailed Guides**: Each button shows comprehensive command information
+  - **Ephemeral Responses**: Admin help responses are private for security
+  - **Quick Access**: Direct links to specific command categories
 - **Usage**: General user commands accessible to all server members
+
+### Interactive Help System (`utils/help_views.py`)
+
+- **Purpose**: Enhanced help experience with interactive button navigation
+- **Components**:
+  - **HelpView**: Main help interface with 4 category buttons
+    - 🏆 Contest Commands - Detailed contest system guide
+    - 🛠️ Utility Commands - Basic functionality reference
+    - 🎭 Role Management - Discord Veteran system information
+    - ⚙️ Admin Commands - Administrative access (with permission check)
+  - **AdminHelpView**: Specialized admin interface with 3 sections
+    - 🤖 Bot Management - System monitoring and control
+    - 🏆 Contest Settings - Announcement configuration
+    - 👑 Owner Commands - Privilege management (owner only)
+- **Features**:
+  - **Permission Aware**: Admin sections check user permissions
+  - **Comprehensive Information**: Each button provides detailed command explanations
+  - **Professional Formatting**: Clean, organized embed presentations
+  - **Timeout Management**: 5-minute interaction timeout for cleanup
+
+### Mention Response System (`utils/mention_response.py`)
+
+- **Purpose**: Interactive bot greeting when mentioned directly in chat
+- **Features**:
+  - **Beautiful Greeting**: Displays rich embed with SST Batch '29 branding
+  - **Feature Highlights**: Shows contest tracking, role management, and admin tools overview
+  - **Interactive Buttons**: Quick access buttons for major commands and information
+  - **GitHub Integration**: Direct link to repository for contributions
+  - **Fallback Response**: Simple text response if embed fails
+- **Components**:
+  - **Help & Commands**: Quick command reference with categories
+  - **View Contests**: Contest system information and supported platforms
+  - **Bot Stats**: Real-time bot statistics and performance metrics
+  - **Contribute**: Direct link to GitHub repository for contributions
 
 ## 🔧 Adding New Features
 

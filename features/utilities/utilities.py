@@ -11,6 +11,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from utils.version import get_bot_name, get_bot_description, get_repository_url
+from utils.help_views import HelpView, AdminHelpView
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -62,140 +63,80 @@ class UtilityCommands(commands.Cog):
 
     @app_commands.command(name="help", description="Show all available commands")
     async def help(self, interaction: discord.Interaction):
-        """Show basic bot help with user commands."""
+        """Show interactive bot help with command categories."""
         embed = discord.Embed(
-            title="🤖 SST Lounge Bot - Command Guide",
-            description="**Discord bot for SST Batch '29**\n\n## 📋 Available Commands",
+            title="🤖 SST Lounge Bot - Interactive Command Guide",
+            description=f"**{get_bot_name()} for SST Batch '29**\n\n"
+                       "Welcome! Use the buttons below to explore different command categories.\n"
+                       "Each button shows detailed information about specific features.",
             color=0x3498db
         )
 
-        # Contest Commands
         embed.add_field(
-            name="🏆 Contest Commands",
-            value="**View programming contests and schedules**\n"
-                  "```\n"
-                  "/contests            → Show upcoming contests\n"
-                  "/contests_today      → Today's contests with status\n"
-                  "/contests_tomorrow   → Tomorrow's contests\n"
-                  "```\n"
-                  "**Supported Platforms:** `codeforces` `codechef` `atcoder` `leetcode`",
-            inline=False
-        )
-
-        # Utility Commands  
-        embed.add_field(
-            name="🛠️ Utility Commands",
-            value="**Bot utilities and information**\n"
-                  "```\n"
-                  "/ping        → Check bot response time\n"
-                  "/hello       → Friendly bot greeting\n"
-                  "/help        → Show this command guide\n"
-                  "/contribute  → Contribution guidelines\n"
-                  "```",
-            inline=False
-        )
-
-        # Role Commands
-        embed.add_field(
-            name="🎭 Role Management",
-            value="**Discord server role utilities**\n"
-                  "```\n"
-                  "/veteran_info → Show role criteria\n"
-                  "```",
+            name="� Quick Overview",
+            value="🏆 **Contest Commands** - Track programming contests across platforms\n"
+                  "🛠️ **Utility Commands** - Basic bot functionality and information\n"
+                  "🎭 **Role Management** - Discord Veteran role system\n"
+                  "⚙️ **Admin Commands** - Administrative controls (admin only)",
             inline=False
         )
 
         embed.add_field(
-            name="💡 Tips & Information",
-            value="• All contest times displayed in **IST** timezone\n"
-                  "• Status indicators: ⏰ *Upcoming* | 🔴 *Running* | ✅ *Ended*\n"
-                  "• Use filters to find contests for specific platforms\n"
-                  "• Bot automatically refreshes contest data daily\n"
-                  "• Type `/admin_help` if you're an administrator",
+            name="💡 Getting Started",
+            value="• Click any button below for detailed command information\n"
+                  "• All times are displayed in **IST** timezone\n"
+                  "• Use `/contribute` to help improve the bot or report bugs or suggest features\n"
+                  "• Mention the bot directly for a quick feature overview",
             inline=False
         )
 
         embed.set_footer(
-            text=f"{get_bot_name()} | Made for SST Batch '29 | Type /contribute for development info"
+            text=f"{get_bot_name()} | Made for SST Batch '29 | Use buttons for detailed help"
         )
-        
-        await interaction.response.send_message(embed=embed)
+
+        # Create interactive view with buttons
+        view = HelpView()
+        await interaction.response.send_message(embed=embed, view=view)
 
     @app_commands.command(name="admin_help", description="Show admin commands (Admin only)")
     async def admin_help(self, interaction: discord.Interaction):
-        """Show admin commands - only visible to admins."""
+        """Show interactive admin commands - only visible to admins."""
         if not is_admin(interaction):
             await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
             return
 
         embed = discord.Embed(
-            title=f"⚙️ {get_bot_name()} - Admin Commands",
-            description="**Administrative commands for SST Batch '29**\n\n## 🔧 Admin Control Panel",
+            title=f"⚙️ {get_bot_name()} - Interactive Admin Guide",
+            description="**Administrative Control Panel for SST Batch '29**\n\n"
+                       "Use the buttons below to explore different admin command categories.\n"
+                       "Each section provides detailed information about specific administrative features.",
             color=0xe74c3c
         )
 
-        # Bot Administration
         embed.add_field(
-            name="🤖 Bot Administration",
-            value="**System management and monitoring**\n"
-                  "```\n"
-                  "/info             → Bot statistics & info\n"
-                  "/sync             → Sync slash commands\n"
-                  "/update           → Update bot from GitHub\n"
-                  "/list_admins      → Show all bot admins\n"
-                  "/logs             → View bot logs\n"
-                  "```",
-            inline=False
-        )
-
-        # Contest Management
-        embed.add_field(
-            name="🏆 Contest Management",
-            value="**Configure contest announcements**\n"
-                  "```\n"
-                  "/contest_setup      → Set announcement channel\n"
-                  "/contest_time       → Set daily announcement time\n"
-                  "/refresh_contests   → Manual cache refresh\n"
-                  "```",
-            inline=False
-        )
-
-        # Role Management
-        embed.add_field(
-            name="🎭 Role Management",
-            value="**Manage server roles and permissions**\n"
-                  "```\n"
-                  "/check_veterans     → Manual veteran role check\n"
-                  "```",
-            inline=False
-        )
-
-        # Owner Only Commands
-        embed.add_field(
-            name="👑 Owner Only Commands",
-            value="**Restricted to bot owner only**\n"
-                  "```\n"
-                  "/grant_admin        → Grant admin permissions\n"
-                  "/revoke_admin       → Revoke admin permissions\n"
-                  "```",
+            name="🔧 Admin Categories",
+            value="🤖 **Bot Management** - System monitoring and control\n"
+                  "🏆 **Contest Settings** - Configure announcements and data\n"
+                  "👑 **Owner Commands** - Privilege management (owner only)",
             inline=False
         )
 
         embed.add_field(
-            name="📋 Administrator Guidelines",
-            value="• Use `/contest_setup` before setting announcement times\n"
-                  "• Check bot logs regularly for any issues\n"
-                  "• Contest cache refreshes automatically every 6 hours\n"
-                  "• Use `/sync` if slash commands aren't appearing\n"
-                  "• Use `/logs` command to monitor bot activity",
+            name="⚡ Quick Access",
+            value="• **`/info`** - Bot statistics and performance\n"
+                  "• **`/logs`** - Export bot logs for troubleshooting\n"
+                  "• **`/list_admins`** - View all current administrators\n"
+                  "• **`/sync`** - Refresh slash commands with Discord",
             inline=False
         )
 
         embed.set_footer(
-            text=f"Admin Panel | {get_bot_name()} | Handle with care!"
+            text=f"{get_bot_name()} Admin Panel | Use buttons for detailed command information"
         )
-        
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        # Create interactive admin view with buttons
+        view = AdminHelpView()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @app_commands.command(name="logs", description="Export bot logs as file (Admin only)")
     @app_commands.describe(

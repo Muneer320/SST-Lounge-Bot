@@ -70,6 +70,14 @@ A comprehensive Discord bot designed for **SST Batch of '29** students in the **
 - **Background Tasks**: Daily cache refresh and automated announcements
 - **Error Handling**: Graceful fallbacks with detailed logging
 
+### 💬 **Interactive Bot Mentions**
+
+- **Rich Greeting**: Beautiful embed response when bot is mentioned directly
+- **Quick Access Buttons**: Interactive buttons for major commands and features
+- **Feature Overview**: Displays contest tracking, role management, and admin tools
+- **GitHub Integration**: Direct contribution link and repository access
+- **Fallback Support**: Simple text response if rich embeds fail
+
 ## 📁 Project Structure
 
 ```text
@@ -82,6 +90,11 @@ A comprehensive Discord bot designed for **SST Batch of '29** students in the **
 │   ├── contests/           # Contest system with caching
 │   ├── roles/              # Automatic role management system
 │   └── utilities/          # Basic utility commands
+├── utils/                  # Utility modules
+│   ├── interaction_helpers.py  # Safe Discord interactions
+│   ├── mention_response.py     # Bot mention responses
+│   └── version.py              # Version management
+├── tests/                  # Test files and validation
 ├── database/               # All database files
 ├── logs/                   # Bot logs and debugging
 ├── run.py                 # Bot entry point
@@ -154,6 +167,7 @@ A comprehensive Discord bot designed for **SST Batch of '29** students in the **
 
 ### Admin Commands (Bot Admin Required)
 
+- `/admin_help` - Interactive admin guide with comprehensive sections for all admin functionality
 - `/refresh_contests` - Manually refresh contest cache (bypasses daily refresh)
 - `/contest_setup [channel]` - Set contest announcement channel
 - `/contest_time [time]` - Configure announcement time (24-hour format HH:MM IST)
@@ -172,7 +186,7 @@ A comprehensive Discord bot designed for **SST Batch of '29** students in the **
 
 - `/ping` - Check bot latency
 - `/hello` - Friendly greeting
-- `/help` - Show all commands
+- `/help` - Interactive command guide with category buttons for easy navigation
 - `/contribute` - Get information about contributing to the bot development
 
 ### Role Information Commands

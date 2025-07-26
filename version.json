@@ -1,9 +1,9 @@
 {
-  "version": "1.5.0",
-  "date": "2025-07-22",
+  "version": "1.5.1",
+  "date": "2025-07-26",
   "name": "SST Lounge Bot",
   "description": "Discord bot for SST '29 Batch",
-  "version_description": "Major codebase cleanup with consolidated helper functions, enhanced logs export, improved error handling, and architectural improvements",
+  "version_description": "Code cleanup and mention response improvements",
   "branch": "main",
   "author": "Unofficial SST Team",
   "repository": "https://github.com/Muneer320/SST-Lounge-Bot"

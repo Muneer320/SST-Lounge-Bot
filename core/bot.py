@@ -7,18 +7,19 @@ import discord
 from discord.ext import commands
 import logging
 import os
+from pathlib import Path
 from core.database import SimpleDB
 from core.updater import GitUpdater
+from utils.mention_response import MentionResponseHandler
 
 
 class SSTLoungeBot(commands.Bot):
     """SST Lounge Discord Bot."""
 
     def __init__(self):
-        # Bot setup with only slash commands
         intents = discord.Intents.default()
         intents.message_content = True
-        intents.members = True  # Required for member join events and fetching member list
+        intents.members = True
 
         super().__init__(
             command_prefix='!',
@@ -26,18 +27,15 @@ class SSTLoungeBot(commands.Bot):
             case_insensitive=True
         )
 
-        # Initialize database
         self.db = SimpleDB()
 
-        # Initialize git updater
         update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '300'))
         self.updater = GitUpdater(self, check_interval=update_interval)
 
-        # Ensure logs directory exists
-        from pathlib import Path
+        self.mention_handler = MentionResponseHandler(self)
+
         Path("logs").mkdir(exist_ok=True)
 
-        # Setup logging
         logging.basicConfig(
             level=logging.INFO,
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -50,15 +48,10 @@ class SSTLoungeBot(commands.Bot):
 
     async def setup_hook(self):
         """Called when the bot is starting up."""
-        # Initialize database
         await self.db.initialize()
-
-        # Load all feature modules
         await self.load_features()
-
         self.logger.info("Bot setup completed")
 
-        # Start update checker if enabled
         if os.getenv('ENABLE_AUTO_UPDATES', 'true').lower() == 'true':
             self.logger.info("Starting auto-update checker")
             self.loop.create_task(self.updater.start_update_checker())
@@ -86,14 +79,12 @@ class SSTLoungeBot(commands.Bot):
         self.logger.info(f"Bot {self.user} is online!")
         self.logger.info(f"Serving {len(self.guilds)} guilds")
 
-        # Sync slash commands on startup
         try:
             synced = await self.tree.sync()
             self.logger.info(f"Synced {len(synced)} slash commands")
         except Exception as e:
             self.logger.error(f"Failed to sync commands: {e}")
 
-        # Set bot activity
         activity = discord.Activity(
             type=discord.ActivityType.watching,
             name="SST Batch '29 | /help"
@@ -108,9 +99,18 @@ class SSTLoungeBot(commands.Bot):
         """Called when bot leaves a guild."""
         self.logger.info(f"Left guild: {guild.name} (ID: {guild.id})")
 
+    async def on_message(self, message):
+        """Handle bot mentions with friendly greeting and helpful buttons."""
+        if message.author.bot:
+            return
+
+        if self.user in message.mentions:
+            await self.mention_handler.send_mention_response(message)
+
+        await self.process_commands(message)
+
     async def close(self):
         """Called when bot is shutting down."""
-        # Stop update checker
         if hasattr(self, 'updater'):
             self.updater.stop()
 
