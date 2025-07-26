@@ -150,6 +150,8 @@ class SimpleDB:
     async def should_send_announcement(self, guild_id: int) -> bool:
         """Check if announcement should be sent for a guild today."""
         if not self.connection:
+            logging.warning(
+                f"Database connection not available for guild {guild_id}")
             return False
         today = datetime.now().date().isoformat()
         cursor = await self.connection.execute("""
@@ -157,7 +159,10 @@ class SimpleDB:
         """, (guild_id,))
         result = await cursor.fetchone()
         last_announcement = result[0] if result else None
-        return last_announcement != today
+        should_send = last_announcement != today
+        logging.debug(
+            f"Guild {guild_id}: last_announcement={last_announcement}, today={today}, should_send={should_send}")
+        return should_send
 
     # Contest Cache Methods
     async def cache_contests(self, contests: List[Dict]):

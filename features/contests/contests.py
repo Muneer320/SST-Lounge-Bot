@@ -334,10 +334,18 @@ class ContestCommands(commands.Cog):
         """Wait for bot to be ready before starting cache refresh."""
         await self.bot.wait_until_ready()
 
-    @tasks.loop(minutes=60)  # Check every hour for announcements
+    @tasks.loop(minutes=5)  # Check every 5 minutes - optimal balance
     async def daily_announcements(self):
         """Background task for daily contest announcements."""
         try:
+            # Get current time in IST
+            ist_timezone = pytz.timezone('Asia/Kolkata')
+            current_time_ist = datetime.now(ist_timezone)
+            current_hour_min = current_time_ist.strftime('%H:%M')
+
+            logging.debug(
+                f"Checking announcements at IST time: {current_hour_min}")
+
             # Get all configured contest channels
             channels = await self.bot.db.get_all_contest_channels()
 
@@ -345,27 +353,47 @@ class ContestCommands(commands.Cog):
                 try:
                     # Check if announcement should be sent today
                     if not await self.bot.db.should_send_announcement(guild_id):
+                        logging.debug(
+                            f"Guild {guild_id}: Announcement already sent today")
                         continue
 
                     # Get announcement time for this guild
                     announcement_time = await self.bot.db.get_announcement_time(guild_id)
-                    current_time = datetime.now()
 
-                    # Check if current time matches announcement time (within 1 hour window)
-                    current_hour_min = current_time.strftime('%H:%M')
-                    if current_hour_min == announcement_time:
+                    logging.debug(
+                        f"Guild {guild_id}: Current={current_hour_min}, Target={announcement_time}")
+
+                    # Check if current time is within 5-minute window of target time
+                    current_time_obj = datetime.strptime(
+                        current_hour_min, '%H:%M').time()
+                    target_time_obj = datetime.strptime(
+                        announcement_time, '%H:%M').time()
+
+                    # Convert to minutes for comparison
+                    current_minutes = current_time_obj.hour * 60 + current_time_obj.minute
+                    target_minutes = target_time_obj.hour * 60 + target_time_obj.minute
+
+                    # Allow 5-minute window (current time >= target time and within 5 minutes)
+                    if current_minutes >= target_minutes and current_minutes < target_minutes + 5:
+                        logging.info(
+                            f"Sending announcement to guild {guild_id} at {current_hour_min} (target: {announcement_time})")
 
                         guild = self.bot.get_guild(guild_id)
                         if not guild:
+                            logging.warning(f"Guild {guild_id} not found")
                             continue
 
                         channel = guild.get_channel(channel_id)
                         if not channel:
+                            logging.warning(
+                                f"Channel {channel_id} not found in guild {guild_id}")
                             continue
 
                         # Send daily contest announcement
                         await self._send_daily_announcement(channel)
                         await self.bot.db.mark_announcement_sent(guild_id)
+                        logging.info(
+                            f"Successfully sent announcement to {guild.name}")
 
                 except Exception as e:
                     logging.error(
@@ -888,6 +916,11 @@ class ContestCommands(commands.Cog):
             value="Make sure you've set a contest channel using `/contest_setup` first!",
             inline=False
         )
+        embed.add_field(
+            name="🧪 Production Ready",
+            value="✅ **Checking every 5 minutes with 5-minute window**\nUse `/announcement_status` to monitor the system",
+            inline=False
+        )
         embed.set_footer(text="🕐 Time zone: IST (Indian Standard Time)")
 
         await interaction.response.send_message(embed=embed)
@@ -939,7 +972,6 @@ class ContestCommands(commands.Cog):
                 color=0xe74c3c
             )
             await interaction.edit_original_response(embed=error_embed)
-
 
 async def setup(bot):
     """Load the contest feature."""

