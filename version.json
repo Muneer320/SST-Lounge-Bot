@@ -3,7 +3,7 @@
   "date": "2025-07-26",
   "name": "SST Lounge Bot",
   "description": "Discord bot for SST '29 Batch",
-  "version_description": "Code cleanup and mention response improvements",
+  "version_description": "Mention response improvements and buttons support added",
   "branch": "main",
   "author": "Unofficial SST Team",
   "repository": "https://github.com/Muneer320/SST-Lounge-Bot"
