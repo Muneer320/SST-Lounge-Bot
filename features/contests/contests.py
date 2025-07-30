@@ -421,31 +421,71 @@ class ContestCommands(commands.Cog):
             )
 
             if today_contests:
-                today_text = []
+                today_contest_list = []
                 for contest in today_contests[:5]:
-                    emoji = self._get_emoji(contest.get('platform_key', ''))
-                    today_text.append(
-                        f"{emoji} **{contest['name']}** ({contest['platform']})")
+                    try:
+                        emoji = self._get_emoji(contest.get('platform_key', ''))
+
+                        # Get contest status and status emoji (with fallback for missing duration_seconds)
+                        duration_seconds = contest.get('duration_seconds', 0)
+                        status = self.api._get_contest_status(
+                            contest['start_time'], duration_seconds)
+                        status_emoji = self.api._get_status_emoji(status)
+
+                        entry = f"{emoji} **{contest['name']}** {status_emoji}\n"
+                        entry += f"Platform: {contest['platform']}\n"
+                        entry += f"Start: {contest['start_time']}\n"
+                        entry += f"Duration: {contest['duration']}"
+
+                        if contest.get('url'):
+                            entry += f"\n[Contest Link]({contest['url']})"
+
+                        today_contest_list.append(entry)
+                    except Exception as e:
+                        logging.warning(
+                            f"Error processing today's contest {contest.get('name', 'unknown')}: {e}")
+                        # Add contest without status if there's an error
+                        emoji = self._get_emoji(contest.get('platform_key', ''))
+                        entry = f"{emoji} **{contest['name']}**\n"
+                        entry += f"Platform: {contest['platform']}\n"
+                        entry += f"Start: {contest['start_time']}"
+                        if contest.get('url'):
+                            entry += f"\n[Contest Link]({contest['url']})"
+                        today_contest_list.append(entry)
 
                 embed.add_field(
-                    name="🗓️ Today's Contests",
-                    value="\n".join(today_text),
+                    name="📅 Today's Contests",
+                    value="\n\n".join(today_contest_list),
                     inline=False
                 )
 
             if tomorrow_contests:
-                tomorrow_text = []
+                tomorrow_contest_list = []
                 for contest in tomorrow_contests[:5]:
                     emoji = self._get_emoji(contest.get('platform_key', ''))
-                    tomorrow_text.append(
-                        f"{emoji} **{contest['name']}** ({contest['platform']})")
+                    entry = f"{emoji} **{contest['name']}**\n"
+                    entry += f"Platform: {contest['platform']}\n"
+                    entry += f"Start: {contest['start_time']}\n"
+                    entry += f"Duration: {contest.get('duration', 'Unknown')}"
+                    if contest.get('url'):
+                        entry += f"\n[Contest Link]({contest['url']})"
+                    tomorrow_contest_list.append(entry)
 
                 embed.add_field(
-                    name="🌅 Tomorrow's Contests",
-                    value="\n".join(tomorrow_text),
+                    name="\n\n🌅 Tomorrow's Contests",
+                    value="\n\n".join(tomorrow_contest_list),
                     inline=False
                 )
 
+            if today_contests:
+                embed.add_field(
+                    name="Status Legend",
+                    value="⏰ Upcoming • 🔴 Running • ✅ Ended",
+                    inline=False
+                )
+
+
+            # No contests fallback
             if not today_contests and not tomorrow_contests:
                 embed.add_field(
                     name="😴 No Contests",
@@ -916,11 +956,6 @@ class ContestCommands(commands.Cog):
             value="Make sure you've set a contest channel using `/contest_setup` first!",
             inline=False
         )
-        embed.add_field(
-            name="🧪 Production Ready",
-            value="✅ **Checking every 5 minutes with 5-minute window**\nUse `/announcement_status` to monitor the system",
-            inline=False
-        )
         embed.set_footer(text="🕐 Time zone: IST (Indian Standard Time)")
 
         await interaction.response.send_message(embed=embed)
@@ -972,6 +1007,7 @@ class ContestCommands(commands.Cog):
                 color=0xe74c3c
             )
             await interaction.edit_original_response(embed=error_embed)
+
 
 async def setup(bot):
     """Load the contest feature."""

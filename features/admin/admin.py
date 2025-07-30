@@ -517,6 +517,7 @@ class AdminCommands(commands.Cog):
             logging.error(f"Error in update command: {e}")
             await interaction.response.send_message(f"❌ Error checking for updates: {str(e)}", ephemeral=True)
 
+
 async def setup(bot):
     """Load the admin feature."""
     await bot.add_cog(AdminCommands(bot))

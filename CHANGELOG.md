@@ -2,6 +2,27 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
+## [1.5.4] - 2025-01-27
+
+### 🎯 Enhanced Daily Announcements
+
+- **Detailed Contest Information**: Daily announcements now match the rich format of `/contests_today` and `/contests_tomorrow`
+
+  - Added platform names and detailed contest information to announcements
+  - Included contest start times, durations, and direct links to contests
+  - Enhanced visual formatting with better spacing and organization
+
+- **Real-Time Status Tracking**: Daily announcements now show live contest status
+
+  - Added status emojis for today's contests (⏰ Upcoming, 🔴 Running, ✅ Ended)
+  - Included status legend when displaying today's contests
+  - Real-time status calculation based on current IST time
+
+- **Improved User Experience**: Announcements are now more informative and actionable
+  - Better visual hierarchy with consistent formatting across commands
+  - Direct contest links for immediate participation
+  - Maintained helpful tips for discovering additional contest commands
+
 ## [1.5.3] - 2025-07-27
 
 ### 🚀 Production Deployment Ready

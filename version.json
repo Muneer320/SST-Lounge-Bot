@@ -1,9 +1,9 @@
 {
-  "version": "1.5.3",
+  "version": "1.5.4",
   "date": "2025-07-27",
   "name": "SST Lounge Bot",
   "description": "Discord bot for SST '29 Batch",
-  "version_description": "Daily contest announcement feature fully optimized  and working, bugs fixed.",
+  "version_description": "Enhanced daily announcements with detailed contest information and real-time status tracking",
   "branch": "main",
   "author": "Unofficial SST Team",
   "repository": "https://github.com/Muneer320/SST-Lounge-Bot"
