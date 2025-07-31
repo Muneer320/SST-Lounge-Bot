@@ -3,6 +3,9 @@ on:
   issues:
     types: [opened, labeled]
 
+permissions:
+  issues: write
+
 jobs:
   welcome_contributor:
     if: github.event.action == 'opened'
@@ -45,7 +48,7 @@ jobs:
 
             welcomeMessage += `\n\n---\n🤖 *This is an automated welcome message. A human maintainer will respond soon!*`;
 
-            github.rest.issues.createComment({
+            await github.rest.issues.createComment({
               issue_number: issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -62,7 +65,7 @@ jobs:
           script: |
             const issue = context.payload.issue;
             const title = issue.title.toLowerCase();
-            const body = issue.body.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
 
             let labels = [];
 
@@ -105,7 +108,7 @@ jobs:
             }
 
             if (labels.length > 0) {
-              github.rest.issues.addLabels({
+              await github.rest.issues.addLabels({
                 issue_number: issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,

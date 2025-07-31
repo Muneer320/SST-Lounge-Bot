@@ -16,20 +16,9 @@ def main():
     """Main entry point for SST Lounge Discord Bot."""
     print("🤖 Starting SST Lounge Discord Bot...\n" + "=" * 50)
 
-    # Check if .env file exists
-    env_file = project_root / ".env"
-    if not env_file.exists():
-        print("❌ .env file not found!\n"
-              "Please copy .env.example to .env and configure your bot token.\n\n"
-              "Steps:\n"
-              "1. Copy .env.example to .env\n"
-              "2. Add your Discord bot token to DISCORD_BOT_TOKEN\n"
-              "3. Optionally add clist.by API credentials")
-        sys.exit(1)
-
     # Check Python version
-    if sys.version_info < (3, 8):
-        print(f"❌ Python 3.8+ is required!\nCurrent version: {sys.version}")
+    if sys.version_info < (3, 13):
+        print(f"Python 3.13+ is required. Current version: {sys.version}")
         sys.exit(1)
 
     try:
@@ -39,12 +28,12 @@ def main():
         from dotenv import load_dotenv
 
         # Load environment variables
-        load_dotenv()
+        load_dotenv(project_root / ".env")
 
         # Get bot token
         token = os.getenv('DISCORD_BOT_TOKEN')
         if not token:
-            print("❌ DISCORD_BOT_TOKEN not found in .env file!")
+            print("DISCORD_BOT_TOKEN is missing. Set it in the environment or .env file.")
             sys.exit(1)
 
         print("✅ Starting bot...")

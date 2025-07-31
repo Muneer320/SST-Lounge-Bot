@@ -9,24 +9,7 @@ import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
-from typing import Optional, List
-from datetime import datetime, timedelta
-
-
-async def schedule_autocomplete(interaction: discord.Interaction, current: str) -> List[app_commands.Choice[str]]:
-    now = datetime.now()
-    options = [
-        ("Now", "now"),
-        ("In 1 hour", (now + timedelta(hours=1)).strftime("%H:%M")),
-        ("Tonight", "23:00"),
-        ("Midnight", "00:00"),
-        ("Tomorrow morning", "08:00"),
-    ]
-
-    return [
-        app_commands.Choice(name=label, value=value)
-        for label, value in options if current.lower() in label.lower() or current.lower() in value.lower()
-    ]
+from typing import Optional
 
 
 async def is_server_owner(interaction: discord.Interaction) -> bool:
@@ -415,107 +398,30 @@ class AdminCommands(commands.Cog):
             logging.error(f"Error listing bot admins: {e}")
             await interaction.response.send_message(f"❌ Failed to list bot admins: {str(e)}", ephemeral=True)
 
-    @app_commands.command(name='update', description='Update the bot to the latest version')
-    @app_commands.describe(
-        schedule='Schedule the update for a specific time (default: now)'
-    )
-    @app_commands.autocomplete(schedule=schedule_autocomplete)
-    async def update_bot(self, interaction: discord.Interaction, schedule: Optional[str] = "now"):
-        """Update the bot to the latest version from GitHub."""
-        # Check if user has bot admin privileges
+    @app_commands.command(name='update', description='Check for a new release and show deployment steps')
+    async def update_bot(self, interaction: discord.Interaction):
+        """Report a release without replacing a live gateway process."""
         if not await is_admin(interaction, self.bot):
             await interaction.response.send_message("❌ Administrator permission, server ownership, or bot admin privileges required.", ephemeral=True)
             return
-
-        logging.info(
-            f"Update command used by {interaction.user} with schedule: {schedule}")
-
+        await interaction.response.defer(ephemeral=True)
         try:
-            # Check if update is available
             update_available, version_info = await self.bot.updater.check_for_updates()
-
             if not update_available:
-                await interaction.response.send_message("✅ Bot is already at the latest version.", ephemeral=True)
+                await interaction.followup.send(
+                    "No newer published version was found. Check the repository if the network is unavailable.",
+                    ephemeral=True,
+                )
                 return
-
-            # Get version info
-            current_version = self.bot.updater.current_version.get(
-                'version', 'unknown')
-            new_version = version_info.get(
-                'version', 'unknown') if version_info else 'unknown'
-            description = version_info.get(
-                'description', 'No description available') if version_info else 'No description available'
-
-            # Parse schedule
-            scheduled_time = None
-            if schedule == "now":
-                schedule_text = "immediately"
-            else:
-                # For future enhancement - parse schedule string
-                schedule_text = "immediately"
-
-            # Confirm the update
-            embed = discord.Embed(
-                title="🔄 Update Available",
-                description=f"Are you sure you want to update the bot from v{current_version} to v{new_version} {schedule_text}?",
-                color=0x3498db
+            version = version_info["version"]
+            await interaction.followup.send(
+                f"Version {version} is available. Ask the host operator to redeploy the bot "
+                "using the steps in the README. The running bot will stay online until that redeploy.",
+                ephemeral=True,
             )
-            embed.add_field(name="Description",
-                            value=description, inline=False)
-            embed.add_field(
-                name="Warning", value="Bot will restart during the update process.", inline=False)
-
-            # Create confirmation buttons
-            class ConfirmView(discord.ui.View):
-                def __init__(self, *, timeout=180, bot=None, scheduled_time=None):
-                    super().__init__(timeout=timeout)
-                    self.bot = bot
-
-                @discord.ui.button(label="Update Now", style=discord.ButtonStyle.green)
-                async def confirm_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
-                    if button_interaction.user.id != interaction.user.id:
-                        await button_interaction.response.send_message("❌ Only the command user can confirm.", ephemeral=True)
-                        return
-
-                    # Create a new view with disabled buttons
-                    disabled_view = discord.ui.View()
-                    disabled_view.add_item(discord.ui.Button(
-                        label="Update Now", style=discord.ButtonStyle.green, disabled=True))
-                    disabled_view.add_item(discord.ui.Button(
-                        label="Cancel", style=discord.ButtonStyle.red, disabled=True))
-
-                    # Mark the buttons as disabled and defer the response
-                    # This consumes the interaction response but doesn't send a message
-                    await button_interaction.response.edit_message(content="🔄 Starting update process...", view=disabled_view)
-
-                    # Start update
-                    if self.bot is not None:
-                        await self.bot.updater.update(button_interaction)
-                    else:
-                        await button_interaction.followup.send("Bot reference is missing. Update failed.", ephemeral=True)
-
-                @discord.ui.button(label="Cancel", style=discord.ButtonStyle.red)
-                async def cancel_callback(self, button_interaction: discord.Interaction, button: discord.ui.Button):
-                    if button_interaction.user.id != interaction.user.id:
-                        await button_interaction.response.send_message("❌ Only the command user can cancel.", ephemeral=True)
-                        return
-
-                    # Create a new view with disabled buttons
-                    disabled_view = discord.ui.View()
-                    disabled_view.add_item(discord.ui.Button(
-                        label="Update Now", style=discord.ButtonStyle.green, disabled=True))
-                    disabled_view.add_item(discord.ui.Button(
-                        label="Cancel", style=discord.ButtonStyle.red, disabled=True))
-
-                    await button_interaction.response.edit_message(content="Update cancelled.", embed=None, view=disabled_view)
-
-            # Send confirmation message with buttons
-            view = ConfirmView(bot=self.bot, scheduled_time=scheduled_time)
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
         except Exception as e:
             logging.error(f"Error in update command: {e}")
-            await interaction.response.send_message(f"❌ Error checking for updates: {str(e)}", ephemeral=True)
+            await interaction.followup.send("Could not check for updates right now.", ephemeral=True)
 
 
 async def setup(bot):

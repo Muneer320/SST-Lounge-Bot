@@ -5,9 +5,10 @@ Handles guild settings, contest caching, and user preferences.
 
 import aiosqlite
 import logging
+import pytz
 from typing import Optional, Dict, List
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 class SimpleDB:
@@ -20,7 +21,7 @@ class SimpleDB:
     async def initialize(self):
         """Initialize database."""
         # Ensure database directory exists
-        Path(self.db_path).parent.mkdir(exist_ok=True)
+        Path(self.db_path).parent.mkdir(parents=True, exist_ok=True)
         Path("logs").mkdir(exist_ok=True)
 
         self.connection = await aiosqlite.connect(self.db_path)
@@ -82,6 +83,14 @@ class SimpleDB:
             )
         """)
 
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS update_notices (
+                user_id INTEGER PRIMARY KEY,
+                version TEXT NOT NULL,
+                notified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         await self.connection.commit()
 
     # Guild Settings Methods
@@ -90,8 +99,9 @@ class SimpleDB:
         if not self.connection:
             return
         await self.connection.execute("""
-            INSERT OR REPLACE INTO guild_settings (guild_id, contest_channel_id) 
+            INSERT INTO guild_settings (guild_id, contest_channel_id)
             VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET contest_channel_id = excluded.contest_channel_id
         """, (guild_id, channel_id))
         await self.connection.commit()
 
@@ -121,10 +131,10 @@ class SimpleDB:
         if not self.connection:
             return
         await self.connection.execute("""
-            INSERT OR REPLACE INTO guild_settings 
-            (guild_id, contest_channel_id, announcement_time) 
-            VALUES (?, COALESCE((SELECT contest_channel_id FROM guild_settings WHERE guild_id = ?), NULL), ?)
-        """, (guild_id, guild_id, time))
+            INSERT INTO guild_settings (guild_id, announcement_time)
+            VALUES (?, ?)
+            ON CONFLICT(guild_id) DO UPDATE SET announcement_time = excluded.announcement_time
+        """, (guild_id, time))
         await self.connection.commit()
 
     async def get_announcement_time(self, guild_id: int) -> str:
@@ -141,7 +151,7 @@ class SimpleDB:
         """Mark that announcement was sent today for a guild."""
         if not self.connection:
             return
-        today = datetime.now().date().isoformat()
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).date().isoformat()
         await self.connection.execute("""
             UPDATE guild_settings SET last_announcement = ? WHERE guild_id = ?
         """, (today, guild_id))
@@ -153,7 +163,7 @@ class SimpleDB:
             logging.warning(
                 f"Database connection not available for guild {guild_id}")
             return False
-        today = datetime.now().date().isoformat()
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).date().isoformat()
         cursor = await self.connection.execute("""
             SELECT last_announcement FROM guild_settings WHERE guild_id = ?
         """, (guild_id,))
@@ -212,7 +222,7 @@ class SimpleDB:
             params.append(start_date)
 
         if end_date:
-            query += " AND start_time <= ?"
+            query += " AND start_time < ?"
             params.append(end_date)
 
         query += " ORDER BY start_time"
@@ -286,7 +296,7 @@ class SimpleDB:
 
     async def get_contests_today(self, platform: Optional[str] = None, limit: Optional[int] = None) -> List[Dict]:
         """Get contests starting today."""
-        today = datetime.now().date()
+        today = datetime.now(pytz.timezone('Asia/Kolkata')).date()
         start_date = today.isoformat()
         end_date = (today + timedelta(days=1)).isoformat()
 
@@ -299,7 +309,7 @@ class SimpleDB:
 
     async def get_contests_tomorrow(self, platform: Optional[str] = None, limit: Optional[int] = None) -> List[Dict]:
         """Get contests starting tomorrow."""
-        tomorrow = datetime.now().date() + timedelta(days=1)
+        tomorrow = datetime.now(pytz.timezone('Asia/Kolkata')).date() + timedelta(days=1)
         start_date = tomorrow.isoformat()
         end_date = (tomorrow + timedelta(days=1)).isoformat()
 
@@ -328,7 +338,8 @@ class SimpleDB:
         if not cache_age:
             return True  # No cache exists
 
-        age_delta = datetime.now() - cache_age
+        # SQLite CURRENT_TIMESTAMP is UTC, irrespective of the host timezone.
+        age_delta = datetime.now(timezone.utc).replace(tzinfo=None) - cache_age
         return age_delta.total_seconds() > (max_age_hours * 3600)
 
     async def fetch_and_cache_contests(self, api, max_days: int = 30) -> int:
@@ -350,8 +361,8 @@ class SimpleDB:
             cached_count = 0
             for contest in contests:
                 try:
-                    # Generate unique ID based on platform and contest name
-                    contest_id = f"{contest['platform'].lower()}_{hash(contest['name'])}"
+                    # Preserve the stable clist.by contest identifier.
+                    contest_id = str(contest['id'])
 
                     # Parse the formatted start time string back to datetime
                     start_time_str = contest['start_time']
@@ -532,6 +543,26 @@ class SimpleDB:
         except Exception as e:
             logging.error(f"Error getting bot admins: {e}")
             return []
+
+    async def was_update_notified(self, user_id: int, version: str) -> bool:
+        """Check whether this user already received this release notice."""
+        cursor = await self.connection.execute(
+            "SELECT 1 FROM update_notices WHERE user_id = ? AND version = ?",
+            (user_id, version),
+        )
+        return await cursor.fetchone() is not None
+
+    async def mark_update_notified(self, user_id: int, version: str):
+        """Persist a successfully delivered notice."""
+        await self.connection.execute(
+            """INSERT INTO update_notices (user_id, version)
+               VALUES (?, ?)
+               ON CONFLICT(user_id) DO UPDATE SET
+                   version = excluded.version,
+                   notified_at = CURRENT_TIMESTAMP""",
+            (user_id, version),
+        )
+        await self.connection.commit()
 
     async def close(self):
         """Close database connection."""

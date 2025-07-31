@@ -27,9 +27,9 @@ class SSTLoungeBot(commands.Bot):
             case_insensitive=True
         )
 
-        self.db = SimpleDB()
+        self.db = SimpleDB(os.getenv('SST_DB_PATH', 'database/sst_lounge.db'))
 
-        update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '300'))
+        update_interval = int(os.getenv('UPDATE_CHECK_INTERVAL', '600'))
         self.updater = GitUpdater(self, check_interval=update_interval)
 
         self.mention_handler = MentionResponseHandler(self)
@@ -64,7 +64,8 @@ class SSTLoungeBot(commands.Bot):
             'features.contests.contests',
             'features.utilities.utilities',
             'features.admin.admin',
-            'features.roles.roles'
+            'features.roles.roles',
+            'features.ratings.ratings',
         ]
 
         for feature in features:

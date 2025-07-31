@@ -84,14 +84,14 @@ class ContestAPI:
         try:
             session = await self.get_session()
 
-            # Time range for API - start from today's 00:00 UTC to get all today's contests
-            start_time = datetime.utcnow().replace(
-                hour=0, minute=0, second=0, microsecond=0)
+            # Contest days are shown in IST, including the early morning hours.
+            start_time = datetime.now(pytz.timezone('Asia/Kolkata')).replace(
+                hour=0, minute=0, second=0, microsecond=0).astimezone(pytz.UTC)
             end_time = start_time + timedelta(days=days)
 
             params = {
-                'start__gte': start_time.strftime('%Y-%m-%dT%H:%M:%S'),
-                'start__lte': end_time.strftime('%Y-%m-%dT%H:%M:%S'),
+                'start__gte': start_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'start__lt': end_time.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'resource__in': ','.join(self.platforms),
                 'order_by': 'start',
                 'format': 'json',
@@ -156,7 +156,7 @@ class ContestAPI:
                 duration_str = self._format_duration(duration_seconds)
 
                 processed.append({
-                    'id': f"{contest['resource']}_{hash(contest['event'])}",
+                    'id': str(contest['id']),
                     'name': contest['event'],
                     'platform': platform_names.get(contest['resource'], contest['resource']),
                     'start_time': ist_time.strftime('%B %d, %Y at %I:%M %p IST'),
@@ -241,14 +241,13 @@ class ContestAPI:
         try:
             session = await self.get_session()
 
-            # Get today's start time at 00:00 UTC
-            today_start = datetime.utcnow().replace(
-                hour=0, minute=0, second=0, microsecond=0)
+            today_start = datetime.now(pytz.timezone('Asia/Kolkata')).replace(
+                hour=0, minute=0, second=0, microsecond=0).astimezone(pytz.UTC)
             today_end = today_start + timedelta(days=1)
 
             params = {
-                'start__gte': today_start.strftime('%Y-%m-%dT%H:%M:%S'),
-                'start__lte': today_end.strftime('%Y-%m-%dT%H:%M:%S'),
+                'start__gte': today_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                'start__lt': today_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
                 'resource__in': ','.join(self.platforms),
                 'order_by': 'start',
                 'format': 'json',
@@ -526,8 +525,9 @@ class ContestCommands(commands.Cog):
                 await self.bot.db.fetch_and_cache_contests(self.api, max_days=30)
 
             # Get from cache with proper date range
-            start_date = datetime.now().date().isoformat()
-            end_date = (datetime.now().date() +
+            today_ist = datetime.now(pytz.timezone('Asia/Kolkata')).date()
+            start_date = today_ist.isoformat()
+            end_date = (today_ist +
                         timedelta(days=days)).isoformat()
 
             # Convert platform name to key if provided

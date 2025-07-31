@@ -88,6 +88,3 @@ token.txt
 # Documentations
 *INTEGRATION.md
 *.service
-
-# Tests
-tests/

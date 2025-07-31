@@ -152,6 +152,13 @@ class UtilityCommands(commands.Cog):
             await interaction.response.send_message("❌ You need admin permissions to use this command.", ephemeral=True)
             return
 
+        if os.getenv("ENABLE_LOG_EXPORT", "false").lower() != "true":
+            await interaction.response.send_message(
+                "Log export is disabled by the host because logs can contain member and server data.",
+                ephemeral=True,
+            )
+            return
+
         await interaction.response.defer(ephemeral=True)
 
         try:

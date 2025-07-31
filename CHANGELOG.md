@@ -2,7 +2,15 @@
 
 All notable changes to the SST Lounge Discord Bot project will be documented in this file.
 
-## [1.5.4] - 2025-01-27
+## [1.6.0] - 2026-10-06
+
+- Added `/cp_rating` through the optional CPStats API and an offline contest demo.
+- Made release checks read-only, with durable once-per-version administrator notices. Removed the broken schedule option and in-process restart.
+- Preserved clist contest IDs and guild settings, and aligned cache dates with IST.
+- Added Docker Compose, pinned dependencies, real CI tests and updated setup documentation.
+- Disabled log export by default because logs may contain member and server data.
+
+## [1.5.4] - 2025-07-27
 
 ### 🎯 Enhanced Daily Announcements
 

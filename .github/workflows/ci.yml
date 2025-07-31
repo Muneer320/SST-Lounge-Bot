@@ -1,0 +1,22 @@
+name: Bot checks
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: python -m pip install -r requirements.lock.txt
+      - run: python -m compileall -q core features utils tests run.py demo.py
+      - run: python -m unittest discover -s tests -v
+      - run: python demo.py

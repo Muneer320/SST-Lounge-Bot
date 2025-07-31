@@ -8,7 +8,7 @@ Welcome to the SST Lounge Bot project! We're excited that you want to contribute
 
 1. **Use the `/contribute` command** in Discord for quick access to this repository
 2. **Check existing issues** to avoid duplicates
-3. **Create a bug report** using our [bug report template](.github/ISSUE_TEMPLATE/bug_report.md)
+3. **Create a bug report** using our [bug report template](ISSUE_TEMPLATE/bug_report.md)
 4. **Include specific details**:
    - Exact Discord command used
    - Bot's response or error message
@@ -17,7 +17,7 @@ Welcome to the SST Lounge Bot project! We're excited that you want to contribute
 
 ### 💡 Suggesting Features
 
-1. **Create a feature request** using our [feature request template](.github/ISSUE_TEMPLATE/feature_request.md)
+1. **Create a feature request** using our [feature request template](ISSUE_TEMPLATE/feature_request.md)
 2. **Explain the benefit** to SST Batch '29
 3. **Provide examples** of how the feature would be used
 4. **Consider implementation** details if you have technical knowledge
@@ -27,7 +27,7 @@ Welcome to the SST Lounge Bot project! We're excited that you want to contribute
 1. **Check documentation** first (README.md, FEATURES.md)
 2. **Use `/help`** command in Discord
 3. **Search existing issues** for similar questions
-4. **Create a question issue** using our [question template](.github/ISSUE_TEMPLATE/question.md)
+4. **Create a question issue** using our [question template](ISSUE_TEMPLATE/question.md)
 
 ## 👨‍💻 Code Contributions
 
@@ -38,12 +38,13 @@ Welcome to the SST Lounge Bot project! We're excited that you want to contribute
 3. **Create a branch** for your feature: `git checkout -b feature-name`
 4. **Set up the development environment**:
    ```bash
-   cd "Discord Bot"
-   python -m venv venv
-   venv\Scripts\activate  # Windows
-   pip install -r requirements.txt
-   cp .env.example .env  # Add your bot token
+   python -m venv .venv
+   .venv/bin/python -m pip install -r requirements.lock.txt
+   .venv/bin/python demo.py
+   .venv/bin/python -m unittest discover -s tests -v
    ```
+
+   On Windows, use `.venv\Scripts\python` in place of `.venv/bin/python`. Python 3.13+ is required. Copy `.env.example` to `.env` only when testing against Discord, then add your own token.
 
 ### 📁 Project Structure
 
@@ -56,6 +57,7 @@ features/               # Modular features
 ├── admin/              # Admin commands and permissions
 ├── contests/           # Contest system with caching
 ├── roles/              # Automatic role management
+├── ratings/            # Optional CPStats API client
 └── utilities/          # Basic utility commands
 
 .github/               # GitHub templates and workflows
@@ -74,17 +76,16 @@ features/               # Modular features
 
 ### 🧪 Testing Your Changes
 
-1. **Test in Discord**: Create a test server and invite your bot
-2. **Check all commands**: Ensure your changes don't break existing functionality
-3. **Test permissions**: Verify admin/owner restrictions work correctly
-4. **Test error cases**: Try invalid inputs and edge cases
-5. **Check database**: Ensure database operations work correctly
+1. **Run offline checks**: `python -m unittest discover -s tests -v` and `python demo.py`
+2. **Test in Discord if applicable**: Use a test server and your own bot token
+3. **Check permissions and failures**: Verify admin/owner restrictions and invalid inputs
+4. **Check database persistence**: Reopen SQLite and confirm stored settings survive
 
 ### 📝 Submitting Changes
 
 1. **Commit your changes** with clear commit messages
 2. **Push to your fork**: `git push origin feature-name`
-3. **Create a Pull Request** using our [PR template](.github/pull_request_template.md)
+3. **Create a Pull Request** using our [PR template](PULL_REQUEST_TEMPLATE.md)
 4. **Fill out the template** completely
 5. **Include screenshots** of Discord command responses if applicable
 
